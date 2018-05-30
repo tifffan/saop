@@ -11,7 +11,7 @@ clear all;
 randn('seed', 18); rand('seed', 18);
 
 % Graph
-graph='net25';
+graph='sensor';
 switch graph
     case 'gnp'
         N=500;
