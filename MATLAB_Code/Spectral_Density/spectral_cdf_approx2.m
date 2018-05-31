@@ -50,6 +50,11 @@ switch cdf_method
         vals(1)=vals(2);
     end
     vals=min(vals,1);
+    for i=1:param.num_pts-1
+        if vals(i+1)<vals(i)
+            vals(i+1)=vals(i);
+        end
+    end
     G.spectrum_cdf_approx = @(s) gsp_mono_cubic_warp_fn(param.pts',vals,s);
     
     case 'ldlt'
@@ -152,6 +157,9 @@ switch cdf_method
             theta  = real(diag(D));  % eigenvalues of Tridiagonal matrix
             gamma2 = eigvec(1,:).^2; % square of top entry of eigenvectors
             eta2=cumsum(gamma2)';
+            % handle repeated eigenvalues
+            [theta,ind]=unique(theta,'last');
+            eta2=eta2(ind);
             %% Accumulate CDOS 
             G.spectrum_cdf_approx=@(x)G.spectrum_cdf_approx(x)+(1/param.num_vec)*gsp_mono_cubic_warp_fn(theta,eta2,x);
         end
