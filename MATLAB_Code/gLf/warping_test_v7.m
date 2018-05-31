@@ -1,10 +1,14 @@
 % This code requires the following packages:
 % 1) GSPBox, available at https://github.com/epfl-lts2/gspbox 
 % 2) Chebfun, available at http://www.chebfun.org/
+% 3) CVX, available at http://cvxr.com/cvx/
 
-% It may also be helpful after downloaded the GSPBox to go into the 
+% It may also be helpful after downloading the GSPBox to go into the 
 % 3rdparty/LDL/LDL/MATLAB/ folder and execute ldl_make.m before running
 % this code
+
+% If graph legend text overlaps, try remove the subfolder in CVX package
+% cvx/lib/narginchk_ from path
 
 close all;
 clear all;
@@ -29,7 +33,8 @@ switch graph
         N=5000;
         G=gsp_community(N);
     case 'net25'
-        load('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/net25 graph data/net25.mat');
+        load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/net25.mat');
+        %load('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/net25 graph data/net25.mat');
         A=Problem.A;
         A = A - diag(diag(A)); 
         A(4228,6327) = 1;
@@ -204,7 +209,7 @@ p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_
 set(gca,'FontSize',24)
 hold on;
 plot(G.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-legend(p2,'Chebyshev','Legendre','Warped Interpolation','Discrete LS','Location','SouthEast');
+legend(p2,'Chebyshev','Legendre','Warped Interpolation','Discrete LS','Location','SouthEast');  
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
 grid on;
