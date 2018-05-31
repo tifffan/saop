@@ -21,14 +21,14 @@ switch graph
         N=5000;
         G=gsp_community(N);
     case 'net25'
-        load('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/net25 graph data/net25.mat');
+        load('/Users/davidshuman/Dropbox/Current_Research_Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/Data/net25_data/net25.mat');
         A=Problem.A;
         A = A - diag(diag(A)); 
         A(4228,6327) = 1;
         A(6327,4228) = 1;
         G=gsp_graph(A);
     case 'temperature'
-        MyData=csvread('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/Data/MyData2.csv');
+        MyData=csvread('/Users/davidshuman/Dropbox/Current_Research_Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/Data/MyData2.csv');
         coords=MyData(:,2:3);
         inds=MyData(:,4);
 
@@ -58,7 +58,7 @@ end
 
 G=gsp_estimate_lmax(G);
 ee=linspace(0,G.lmax,2000);
-param.order=80;
+param.order=50; % setting this above 70 causes numerical issues with Lanczos
 param.num_vec=30;
 param.num_pts=80;
 
