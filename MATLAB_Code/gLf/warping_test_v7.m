@@ -156,7 +156,7 @@ errors_leg=y-y_leg;
 sup_err_leg=max(abs(errors_leg));
 se_leg=sum(errors_leg.^2);
 
-y_lanczos=G.U'*gsp_filter(G,f,sum(G.U)',lanc_param);   % but approximation is oscillating... fix this
+y_lanczos=G.U'*gsp_filter(G,f,sum(G.U')',lanc_param);
 errors_lanczos=y-y_lanczos;
 sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
@@ -198,13 +198,14 @@ yy_ls=polyval(lsc,xx);
 % Figure 2: approximations for filter function
 figure;
 p1=plot(xx,[yy_cheb,pleg(xx),yy_cheb_warped,yy_spec_adapted_ortho,yy_ls,yy],'LineWidth',4);
-set(gca,'FontSize',24)
+set(gca,'FontSize',20)
 legend(p1,'Chebyshev','Legendre','Warped Interpolation','Spectrum-Adapted Ortho. Poly.','Discrete LS','g','Location','NorthEast');
 grid on;
 hold on;
 xlabel('\lambda');
 ylabel('Filter approximations');
-plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
+plot(G.e, y_lanczos, 'LineWidth',4,'DisplayName','Reg. Lanczos');
+plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalues');
 
 figure;
 cc=lines(5);
@@ -226,7 +227,8 @@ p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_
 set(gca,'FontSize',24)
 hold on;
 plot(G.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-legend(p2,'Chebyshev','Legendre','Regular Lanczos','Warped Interpolation','Discrete LS','Location','SouthEast');  
+legend(p2,'Chebyshev','Legendre','Warped Interpolation','Discrete LS','Location','SouthEast');  
+plot(G.e, abs(y-y_lanczos), 'LineWidth',4,'DisplayName','Reg. Lanczos');
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
 grid on;
