@@ -156,7 +156,7 @@ errors_leg=y-y_leg;
 sup_err_leg=max(abs(errors_leg));
 se_leg=sum(errors_leg.^2);
 
-y_lanczos=G.U'*gsp_filter(G,f,sum(G.U)',lanc_param);   % U^T*y  check this
+y_lanczos=G.U'*gsp_filter(G,f,sum(G.U)',lanc_param);   % but approximation is oscillating... fix this
 errors_lanczos=y-y_lanczos;
 sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
