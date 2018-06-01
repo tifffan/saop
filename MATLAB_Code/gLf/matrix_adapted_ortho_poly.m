@@ -68,7 +68,7 @@ weights=weights/sum(weights);
 
 
 % Compute the recurrence coefficients from the discrete measure, using the
-% Lanczos method described in Gautschi, Section 2.2.3.2 (pp. 97-98)
+% Lanczos method described in Gautschi, Section 2.2.3.2 (pp. 96-98)
 xw=[absc',weights']; %TODO: place weights at absc or in between?
 %tic
 recurr_coeffs=lanczos(poly_order+1,xw); % from https://www.cs.purdue.edu/archives/2002/wxg/codes/OPQ.html

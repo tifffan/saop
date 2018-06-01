@@ -8,11 +8,11 @@
 % this code
 
 % If graph legend text overlaps, try remove the subfolder in CVX package
-% cvx/lib/narginchk_ from path
+% cvx/lib/narginchk_ from path or rename function narginchk.m 
 
 close all;
 clear all;
-randn('seed', 18); rand('seed', 18);
+randn('seed', 18); rand('seed', 18)
 
 % Graph
 graph='sensor';
@@ -48,9 +48,10 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='kpm'; % can change to 'lanczos'
+param.cdf_method='lanczos'; % can change to 'kpm' or 'lanczos'
 param.num_vec=30;
-param.order=100;
+param.order=30;
+param.pts=linspace(.1,G.lmax,param.num_pts);
 G=spectral_cdf_approx2(G,param); 
 
 
@@ -83,6 +84,10 @@ c(1)=c(1)*2;
 pleg = polyfit(h,K);
 plegc=pleg.coeffs;
 plegc(1)=plegc(1)*2;
+
+% Regular Lanczos
+lanc_param.method='lanczos';
+lanc_param.order=K;           % set K = larger constant for testing
 
 % Warped
 g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
@@ -140,31 +145,42 @@ y=f(G.e);
 lsc=polyfit(G.e,y,K);
 
 % Compute polynomial approximation values at the actual eigenvalues and 
-% the corresponding squared error
+% the corresponding superior and squared error
 y_cheb=gsp_cheby_eval(G.e,c,[0,lmax_est]);
 errors_cheb=y-y_cheb;
-sup_err_cheb=max(abs(errors_cheb))
-se_cheb=sum(errors_cheb.^2)
+sup_err_cheb=max(abs(errors_cheb));
+se_cheb=sum(errors_cheb.^2);
 
 y_leg=gsp_cheby_eval(G.e,plegc,[0,lmax_est]);
 errors_leg=y-y_leg;
-sup_err_leg=max(abs(errors_leg))
-se_leg=sum(errors_leg.^2)
+sup_err_leg=max(abs(errors_leg));
+se_leg=sum(errors_leg.^2);
+
+y_lanczos=G.U'*gsp_filter(G,f,sum(G.U)',lanc_param);   % U^T*y  check this
+errors_lanczos=y-y_lanczos;
+sup_err_lanczos=max(abs(errors_lanczos));
+se_lanczos=sum(errors_lanczos.^2);
+
+figure;
+plot(G.e, [f(G.e), y_lanczos])
 
 y_cheb_warped=p_warped(G.e);
 errors_cheb_warped=y-y_cheb_warped;
-sup_err_cheb_warped=max(abs(errors_cheb_warped))
-se_cheb_warped=sum(errors_cheb_warped.^2)
+sup_err_cheb_warped=max(abs(errors_cheb_warped));
+se_cheb_warped=sum(errors_cheb_warped.^2);
 
 y_spec_adapted_ortho=three_term_eval(G,G.e,ab,c_spec_adapted_ortho);
 errors_spec_adapted_ortho=y-y_spec_adapted_ortho;
-sup_err_spec_adapted_ortho=max(abs(errors_spec_adapted_ortho))
-se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2)
+sup_err_spec_adapted_ortho=max(abs(errors_spec_adapted_ortho));
+se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2);
 
 y_ls=polyval(lsc,G.e);
 errors_ls=y-y_ls;
-sup_err_ls=max(abs(errors_ls))
-se_ls=sum(errors_ls.^2)
+sup_err_ls=max(abs(errors_ls));
+se_ls=sum(errors_ls.^2);
+
+sup_err_all = [sup_err_cheb, sup_err_leg, sup_err_lanczos, sup_err_cheb_warped, sup_err_spec_adapted_ortho, sup_err_ls]
+se_all = [se_cheb, se_leg, se_lanczos, se_cheb_warped, se_spec_adapted_ortho, se_ls]
 
 % Plots
 xmax=max(lmax_est,G.lmax);
@@ -179,6 +195,7 @@ yy_cheb_warped=p_warped(xx);
 yy_spec_adapted_ortho=three_term_eval(G,xx,ab,c_spec_adapted_ortho);
 yy_ls=polyval(lsc,xx);
 
+% Figure 2: approximations for filter function
 figure;
 p1=plot(xx,[yy_cheb,pleg(xx),yy_cheb_warped,yy_spec_adapted_ortho,yy_ls,yy],'LineWidth',4);
 set(gca,'FontSize',24)
@@ -209,7 +226,7 @@ p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_
 set(gca,'FontSize',24)
 hold on;
 plot(G.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-legend(p2,'Chebyshev','Legendre','Warped Interpolation','Discrete LS','Location','SouthEast');  
+legend(p2,'Chebyshev','Legendre','Regular Lanczos','Warped Interpolation','Discrete LS','Location','SouthEast');  
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
 grid on;
@@ -217,11 +234,22 @@ grid on;
 
 % Test f(L)b on random signal b
 num_tests=5;
+
+ntime_cheb=zeros(num_tests,1);
+ntime_leg=zeros(num_tests,1);
+ntime_lanczos=zeros(num_tests,1);
+ntime_warped=zeros(num_tests,1);
+ntime_spec=zeros(num_tests,1);
+ntime_ls=zeros(num_tests,1);
+ntime_exact=zeros(num_tests,1);
+
 nmse_cheb=zeros(num_tests,1);
 nmse_leg=zeros(num_tests,1);
-nmse_warped=zeros(num_tests,1);
-nmse_ls=zeros(num_tests,1);
 nmse_lanczos=zeros(num_tests,1);
+nmse_warped=zeros(num_tests,1);
+nmse_spec=zeros(num_tests,1);
+nmse_ls=zeros(num_tests,1);
+
 
 G2=G;
 G2.lmax=lmax_est;
@@ -236,32 +264,50 @@ for i=1:num_tests
     bhat=G.U'*b;
     tic
     gLf_exact=G.U*(f(G.e).*bhat);
-    exact_toc=toc
+    ntime_exact(i)=toc;     % add time to compute fourier basis
     tic
     gLf_ls=G.U*(polyval(lsc,G.e).*bhat);    
-    ls_toc=toc
+    ntime_ls(i)=toc;        % add time to compute fourier basis
     tic
     gLf_cheb=gsp_cheby_op(G2,c,b); 
-    cheb_toc=toc
+    ntime_cheb(i)=toc;
     tic
     gLf_leg=gsp_cheby_op(G2,plegc,b); 
-    leg_toc=toc
-    tic
-    gLf_warped=gsp_cheby_op(G2,p_warped_c,b);
-    warped_toc=toc
+    ntime_leg(i)=toc;
     tic
     gLf_lanczos=gsp_filter(G2,f,b,lanc_param);
-    lanc_toc=toc
-    
+    ntime_lanczos(i)=toc;
+    tic
+    gLf_warped=gsp_cheby_op(G2,p_warped_c,b);
+    ntime_warped(i)=toc;
+    %tic
+    %gLf_spec=gsp_cheby_op(G2,c_spec_adapted_ortho,b);
+    %ntime_spec(i)=toc;
+
     nmse_cheb(i)=sum((gLf_cheb-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_leg(i)=sum((gLf_leg-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_warped(i)=sum((gLf_warped-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_ls(i)=sum((gLf_ls-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_lanczos(i)=sum((gLf_lanczos-gLf_exact).^2)/sum(gLf_exact.^2);
+    nmse_warped(i)=sum((gLf_warped-gLf_exact).^2)/sum(gLf_exact.^2);
+    %nmse_spec(i)=sum((gLf_spec-gLf_exact).^2)/sum(gLf_exact.^2);
+    nmse_ls(i)=sum((gLf_ls-gLf_exact).^2)/sum(gLf_exact.^2);
+    
 end
 
-avg_nmse_cheb=mean(nmse_cheb)
-avg_nmse_leg=mean(nmse_leg)
-avg_nmse_warped=mean(nmse_warped)
-avg_nmse_ls=mean(nmse_ls)
-avg_nmse_lanczos=mean(nmse_lanczos)
+avg_ntime_cheb=mean(ntime_cheb);
+avg_ntime_leg=mean(ntime_leg);
+avg_ntime_lanczos=mean(ntime_lanczos);
+avg_ntime_warped=mean(ntime_warped);
+%avg_ntime_spec=mean(ntime_spec);
+avg_ntime_ls=mean(ntime_ls);
+avg_ntime_exact=mean(ntime_exact);
+
+avg_nmse_cheb=mean(nmse_cheb);
+avg_nmse_leg=mean(nmse_leg);
+avg_nmse_lanczos=mean(nmse_lanczos);
+avg_nmse_warped=mean(nmse_warped);
+%avg_nmse_spec=mean(nmse_spec);
+avg_nmse_ls=mean(nmse_ls);
+
+
+%avg_time_all = [avg_ntime_cheb, avg_ntime_leg, avg_ntime_lanczos, avg_ntime_warped, avg_time_spec, avg_ntime_ls, avg_ntime_exact]
+%avg_nmse_ls = [avg_nmse_cheb, avg_nmse_leg, avg_nmse_lanczos, avg_nmse_warped, avg_nmse_spec, avg_nmse_ls, avg_nmse_exact]
