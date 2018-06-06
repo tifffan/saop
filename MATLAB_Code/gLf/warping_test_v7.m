@@ -140,7 +140,9 @@ c_spec_adapted_ortho = matrix_adapted_poly_coeff(G, f, absc', weights', Pi, K);
 
 % Least squares (assumes full knowledge of eigenvalues; just for comparison
 % to ideal; not scalable)
+tic
 G=gsp_compute_fourier_basis(G);
+time_exact_spec=toc;
 y=f(G.e);
 lsc=polyfit(G.e,y,K);
 
@@ -209,14 +211,14 @@ plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalu
 figure;
 cc=lines(5);
 p1=plot(xx,[yy_cheb_warped,yy],'LineWidth',4);
-set(gca,'FontSize',24)
+set(gca,'FontSize',20)
 legend(p1,'Warped Interpolation','g','Location','NorthEast');
 set(p1, {'color'}, {cc(3,:); cc(5,:)});
 grid on;
 hold on;
 xlabel('\lambda');
-plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-plot(chebpts_warped,f(chebpts_warped),'xr','LineWidth',4,'MarkerSize',15);
+plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalues');
+plot(chebpts_warped,f(chebpts_warped),'xr','LineWidth',4,'MarkerSize',15,'DisplayName','Warped Pts');
 %xlim([0,70]);
 %set(gca,'XTick',0:10:70);
 
@@ -224,7 +226,7 @@ plot(chebpts_warped,f(chebpts_warped),'xr','LineWidth',4,'MarkerSize',15);
 % Figure 4: absolute error comparison across methods
 figure;
 p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_spec_adapted_ortho),abs(yy-yy_ls)],'LineWidth',4);
-set(gca,'FontSize',24)
+set(gca,'FontSize',20)
 hold on;
 plot(G.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
 legend(p2,'Chebyshev','Legendre','Warped Interpolation','Spectrum-Adapted Ortho. Poly.','Discrete LS','Location','SouthEast');  
@@ -265,10 +267,16 @@ for i=1:num_tests
     bhat=G.U'*b;
     tic
     gLf_exact=G.U*(f(G.e).*bhat);
-    ntime_exact(i)=toc;     % add time to compute fourier basis
+    ntime_exact(i)=toc;
+    % add time to compute exact spectrum for every new vector b
+    % can change to add this time only once for all b's
+    ntime_exact(i)=ntime_exact(i)+time_exact_spec 
     tic
     gLf_ls=G.U*(polyval(lsc,G.e).*bhat);    
-    ntime_ls(i)=toc;        % add time to compute fourier basis
+    ntime_ls(i)=toc;
+    % addd time to compute exact spectrum for every new vector b
+    % can change to add this time only once for all b's
+    ntime_ls(i)=ntime_ls(i)+time_exact_spec
     tic
     gLf_cheb=gsp_cheby_op(G2,c,b); 
     ntime_cheb(i)=toc;
