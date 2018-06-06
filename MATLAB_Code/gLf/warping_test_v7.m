@@ -15,7 +15,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='sensor';
+graph='net25';
 switch graph
     case 'gnp'
         N=500;
@@ -33,7 +33,7 @@ switch graph
         N=5000;
         G=gsp_community(N);
     case 'net25'
-        load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/net25.mat');
+        load('/Users/lfan/Documents/MATLAB/git/spectral-warping/MATLAB_Code/Data/net25.mat');
         %load('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/net25 graph data/net25.mat');
         A=Problem.A;
         A = A - diag(diag(A)); 
@@ -48,7 +48,7 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='lanczos'; % can change to 'kpm' or 'lanczos'
+param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos'
 param.num_vec=30;
 param.order=30;
 param.pts=linspace(.1,G.lmax,param.num_pts);
@@ -57,7 +57,7 @@ G=spectral_cdf_approx2(G,param);
 
 % Filters - testing mostly for analytic filters. If we have a
 % discontinuity, we need more interpolation points near the discontinuity
-filter='inverse';
+filter='heat';
 
 switch filter
     case 'inverse'
@@ -178,7 +178,7 @@ errors_ls=y-y_ls;
 sup_err_ls=max(abs(errors_ls));
 se_ls=sum(errors_ls.^2);
 
-Method = ["Chebyshev"; "Legengre"; "Reg. Lanczos"; "Warped Interpolation"; "Spectrum-Adapted Ortho. Poly.";"Discrete LS";"Exact"];
+Method = ["Chebyshev"; "Legengre"; "Reg. Lanczos"; "Warped Chebyshev"; "Spectrum-Adapted Ortho. Poly.";"Discrete LS";"Exact"];
 Sup_Err = [sup_err_cheb; sup_err_leg; sup_err_lanczos; sup_err_cheb_warped; sup_err_spec_adapted_ortho; sup_err_ls;0];
 Sq_Err = [se_cheb; se_leg; se_lanczos; se_cheb_warped; se_spec_adapted_ortho; se_ls;0];
 
@@ -199,7 +199,7 @@ yy_ls=polyval(lsc,xx);
 figure;
 p1=plot(xx,[yy_cheb,pleg(xx),yy_cheb_warped,yy_spec_adapted_ortho,yy_ls,yy],'LineWidth',4);
 set(gca,'FontSize',20)
-legend(p1,'Chebyshev','Legendre','Warped Interpolation','Spectrum-Adapted Ortho. Poly.','Discrete LS','g','Location','NorthEast');
+legend(p1,'Chebyshev','Legendre','Warped Chebyshev','Spectrum-Adapted Ortho. Poly.','Discrete LS','g','Location','NorthEast');
 grid on;
 hold on;
 xlabel('\lambda');
@@ -270,13 +270,13 @@ for i=1:num_tests
     ntime_exact(i)=toc;
     % add time to compute exact spectrum for every new vector b
     % can change to add this time only once for all b's
-    ntime_exact(i)=ntime_exact(i)+time_exact_spec 
+    ntime_exact(i)=ntime_exact(i)+time_exact_spec;
     tic
     gLf_ls=G.U*(polyval(lsc,G.e).*bhat);    
     ntime_ls(i)=toc;
     % addd time to compute exact spectrum for every new vector b
     % can change to add this time only once for all b's
-    ntime_ls(i)=ntime_ls(i)+time_exact_spec
+    ntime_ls(i)=ntime_ls(i)+time_exact_spec;
     tic
     gLf_cheb=gsp_cheby_op(G2,c,b); 
     ntime_cheb(i)=toc;
@@ -317,7 +317,7 @@ avg_nmse_warped=mean(nmse_warped);
 avg_nmse_spec=mean(nmse_spec);
 avg_nmse_ls=mean(nmse_ls);
 
-
 Avg_Time = [avg_ntime_cheb; avg_ntime_leg; avg_ntime_lanczos; avg_ntime_warped; avg_ntime_spec; avg_ntime_ls; avg_ntime_exact];
 Avg_NMSE = [avg_nmse_cheb; avg_nmse_leg; avg_nmse_lanczos; avg_nmse_warped; avg_nmse_spec; avg_nmse_ls;0];
-T= table(Method,Sup_Err,Sq_Err,Avg_Time,Avg_NMSE)
+summary = table(Method,Sup_Err,Sq_Err,Avg_Time,Avg_NMSE)
+parameters = cell2table({graph, param.cdf_method, filter},'VariableNames',{'Graph' 'CDFmethod' 'Filter'})
