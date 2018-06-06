@@ -57,7 +57,7 @@ end
 if ~isfield(param,'verbose'), param.verbose = 1; end;
 
 
-Nscales=size(c,2);
+Nscales=size(c,2);       % Number of polynomial filters
 
 M = size(c,1);
 % To handle different order of approximation
@@ -100,7 +100,7 @@ a2 = (arange(2) + arange(1))/2;
 Twf_old=signal;                     % j = 0;
 Twf_cur=G.L*signal-ab(1,1)*signal;  % j = 1;
 
-Nv = size(signal,2);
+Nv = size(signal,2);          % Number of signals being filtered
 r = zeros(G.N*Nscales,Nv);
 
 for ii=1:Nscales

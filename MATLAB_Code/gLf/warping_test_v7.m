@@ -161,9 +161,6 @@ errors_lanczos=y-y_lanczos;
 sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
 
-figure;
-plot(G.e, [f(G.e), y_lanczos])
-
 y_cheb_warped=p_warped(G.e);
 errors_cheb_warped=y-y_cheb_warped;
 sup_err_cheb_warped=max(abs(errors_cheb_warped));
@@ -179,8 +176,9 @@ errors_ls=y-y_ls;
 sup_err_ls=max(abs(errors_ls));
 se_ls=sum(errors_ls.^2);
 
-sup_err_all = [sup_err_cheb, sup_err_leg, sup_err_lanczos, sup_err_cheb_warped, sup_err_spec_adapted_ortho, sup_err_ls]
-se_all = [se_cheb, se_leg, se_lanczos, se_cheb_warped, se_spec_adapted_ortho, se_ls]
+Method = ["Chebyshev"; "Legengre"; "Reg. Lanczos"; "Warped Interpolation"; "Spectrum-Adapted Ortho. Poly.";"Discrete LS";"Exact"];
+Sup_Err = [sup_err_cheb; sup_err_leg; sup_err_lanczos; sup_err_cheb_warped; sup_err_spec_adapted_ortho; sup_err_ls;0];
+Sq_Err = [se_cheb; se_leg; se_lanczos; se_cheb_warped; se_spec_adapted_ortho; se_ls;0];
 
 % Plots
 xmax=max(lmax_est,G.lmax);
@@ -195,7 +193,7 @@ yy_cheb_warped=p_warped(xx);
 yy_spec_adapted_ortho=three_term_eval(G,xx,ab,c_spec_adapted_ortho);
 yy_ls=polyval(lsc,xx);
 
-% Figure 2: approximations for filter function
+% Figure 2: approximations for function g
 figure;
 p1=plot(xx,[yy_cheb,pleg(xx),yy_cheb_warped,yy_spec_adapted_ortho,yy_ls,yy],'LineWidth',4);
 set(gca,'FontSize',20)
@@ -207,6 +205,7 @@ ylabel('Filter approximations');
 plot(G.e, y_lanczos, 'LineWidth',4,'DisplayName','Reg. Lanczos');
 plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalues');
 
+% Figure 3: warped interpolation
 figure;
 cc=lines(5);
 p1=plot(xx,[yy_cheb_warped,yy],'LineWidth',4);
@@ -222,12 +221,13 @@ plot(chebpts_warped,f(chebpts_warped),'xr','LineWidth',4,'MarkerSize',15);
 %set(gca,'XTick',0:10:70);
 
 
+% Figure 4: absolute error comparison across methods
 figure;
-p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_ls)],'LineWidth',4);
+p2=semilogy(xx,[abs(yy-yy_cheb),abs(yy-yy_leg),abs(yy-yy_cheb_warped),abs(yy-yy_spec_adapted_ortho),abs(yy-yy_ls)],'LineWidth',4);
 set(gca,'FontSize',24)
 hold on;
 plot(G.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-legend(p2,'Chebyshev','Legendre','Warped Interpolation','Discrete LS','Location','SouthEast');  
+legend(p2,'Chebyshev','Legendre','Warped Interpolation','Spectrum-Adapted Ortho. Poly.','Discrete LS','Location','SouthEast');  
 plot(G.e, abs(y-y_lanczos), 'LineWidth',4,'DisplayName','Reg. Lanczos');
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
@@ -251,7 +251,6 @@ nmse_lanczos=zeros(num_tests,1);
 nmse_warped=zeros(num_tests,1);
 nmse_spec=zeros(num_tests,1);
 nmse_ls=zeros(num_tests,1);
-
 
 G2=G;
 G2.lmax=lmax_est;
@@ -282,15 +281,15 @@ for i=1:num_tests
     tic
     gLf_warped=gsp_cheby_op(G2,p_warped_c,b);
     ntime_warped(i)=toc;
-    %tic
-    %gLf_spec=gsp_cheby_op(G2,c_spec_adapted_ortho,b);
-    %ntime_spec(i)=toc;
+    tic
+    gLf_spec=three_term_recurr_op(G2,ab,c_spec_adapted_ortho,b);
+    ntime_spec(i)=toc;
 
     nmse_cheb(i)=sum((gLf_cheb-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_leg(i)=sum((gLf_leg-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_lanczos(i)=sum((gLf_lanczos-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_warped(i)=sum((gLf_warped-gLf_exact).^2)/sum(gLf_exact.^2);
-    %nmse_spec(i)=sum((gLf_spec-gLf_exact).^2)/sum(gLf_exact.^2);
+    nmse_spec(i)=sum((gLf_spec-gLf_exact).^2)/sum(gLf_exact.^2);
     nmse_ls(i)=sum((gLf_ls-gLf_exact).^2)/sum(gLf_exact.^2);
     
 end
@@ -299,7 +298,7 @@ avg_ntime_cheb=mean(ntime_cheb);
 avg_ntime_leg=mean(ntime_leg);
 avg_ntime_lanczos=mean(ntime_lanczos);
 avg_ntime_warped=mean(ntime_warped);
-%avg_ntime_spec=mean(ntime_spec);
+avg_ntime_spec=mean(ntime_spec);
 avg_ntime_ls=mean(ntime_ls);
 avg_ntime_exact=mean(ntime_exact);
 
@@ -307,9 +306,10 @@ avg_nmse_cheb=mean(nmse_cheb);
 avg_nmse_leg=mean(nmse_leg);
 avg_nmse_lanczos=mean(nmse_lanczos);
 avg_nmse_warped=mean(nmse_warped);
-%avg_nmse_spec=mean(nmse_spec);
+avg_nmse_spec=mean(nmse_spec);
 avg_nmse_ls=mean(nmse_ls);
 
 
-%avg_time_all = [avg_ntime_cheb, avg_ntime_leg, avg_ntime_lanczos, avg_ntime_warped, avg_time_spec, avg_ntime_ls, avg_ntime_exact]
-%avg_nmse_ls = [avg_nmse_cheb, avg_nmse_leg, avg_nmse_lanczos, avg_nmse_warped, avg_nmse_spec, avg_nmse_ls, avg_nmse_exact]
+Avg_Time = [avg_ntime_cheb; avg_ntime_leg; avg_ntime_lanczos; avg_ntime_warped; avg_ntime_spec; avg_ntime_ls; avg_ntime_exact];
+Avg_NMSE = [avg_nmse_cheb; avg_nmse_leg; avg_nmse_lanczos; avg_nmse_warped; avg_nmse_spec; avg_nmse_ls;0];
+T= table(Method,Sup_Err,Sq_Err,Avg_Time,Avg_NMSE)
