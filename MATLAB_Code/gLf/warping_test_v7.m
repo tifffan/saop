@@ -57,7 +57,7 @@ G=spectral_cdf_approx2(G,param);
 
 % Filters - testing mostly for analytic filters. If we have a
 % discontinuity, we need more interpolation points near the discontinuity
-filter='heat';
+filter='inverse';
 
 switch filter
     case 'inverse'
@@ -90,11 +90,13 @@ lanc_param.method='lanczos';
 lanc_param.order=K;           % set K = larger constant for testing
 
 % Warped
-g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
+%g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
+g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
 gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CDF
 
 chebpts=cos((0:K)*pi/K)'; 
-chebpts_tx=(chebpts+1)*lmax_est/2; 
+chebpts_tx=(chebpts+1)*lmax_est/2;
+%chebpts_tx=(chebpts+1)*(lmax_est+0.2)/2;
 chebpts_tx=sort(chebpts_tx,'ascend');
 chebpts_warped=gi(chebpts_tx);
 
@@ -110,11 +112,17 @@ if force_max
     chebpts_warped=sort(chebpts_warped,'ascend');
 end
 
-dom=domain(0,lmax_est);
+%dom=domain(0,lmax_est);
+dom=domain(-0.1,lmax_est+0.1);
 p_warped=chebfun.interp1(chebpts_warped,f(chebpts_warped),dom);
 p_warped_c=p_warped.coeffs;
 p_warped_c(1)=p_warped_c(1)*2;
 
+%try other prthogonal polynomial basis
+p_warped_c_leg=polyfit(chebpts_warped,f(chebpts_warped),K);
+%p_warped_c_leg(1)=p_warped_c_leg(1)*2;
+
+% Figure 1: warped points on approximated CDF
 figure;
 Fbar=@(x)lmax_est*G.spectrum_cdf_approx(x);
 fbarparam.plot_eigenvalues=0;
@@ -192,6 +200,7 @@ yy=f(xx);
 yy_cheb=gsp_cheby_eval(xx,c,[0,lmax_est]);
 yy_leg=gsp_cheby_eval(xx,plegc,[0,lmax_est]);
 yy_cheb_warped=p_warped(xx);
+yy_leg_warped=polyval(p_warped_c_leg,xx);
 yy_spec_adapted_ortho=three_term_eval(G,xx,ab,c_spec_adapted_ortho);
 yy_ls=polyval(lsc,xx);
 
@@ -210,10 +219,10 @@ plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalu
 % Figure 3: warped interpolation
 figure;
 cc=lines(5);
-p1=plot(xx,[yy_cheb_warped,yy],'LineWidth',4);
+p1=plot(xx,[yy_cheb_warped,yy_leg_warped,yy],'LineWidth',4);
 set(gca,'FontSize',20)
-legend(p1,'Warped Interpolation','g','Location','NorthEast');
-set(p1, {'color'}, {cc(3,:); cc(5,:)});
+legend(p1,'Cheb. Warped Interpolation','Leg. Warped Interpolation','g','Location','NorthEast');
+set(p1, {'color'}, {cc(3,:);cc(4,:); cc(5,:)});
 grid on;
 hold on;
 xlabel('\lambda');
