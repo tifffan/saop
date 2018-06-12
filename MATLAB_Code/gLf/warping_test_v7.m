@@ -390,6 +390,6 @@ avg_nmse_ls=mean(nmse_ls);
 Avg_Time = [avg_ntime_cheb; avg_ntime_leg; avg_ntime_lanczos; avg_ntime_warped; avg_ntime_spec; avg_ntime_ls; avg_ntime_exact];
 Avg_NMSE = [avg_nmse_cheb; avg_nmse_leg; avg_nmse_lanczos; avg_nmse_warped; avg_nmse_spec; avg_nmse_ls;0];
 summary = table(Method,Sup_Err,Sq_Err,Avg_Time,Avg_NMSE)
-parameters = cell2table({graph, param.cdf_method, filter,K,leaveout_end},'VariableNames',{'Graph' 'CDFmethod' 'Filter' 'K' 'leaveout_end'})
+parameters = cell2table({graph, param.cdf_method, filter,K,damping,leaveout_end},'VariableNames',{'Graph' 'CDFMethod' 'Filter' 'K' 'Damping' 'LeaveOutEnd'})
 
 %end

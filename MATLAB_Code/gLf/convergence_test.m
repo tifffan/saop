@@ -48,7 +48,7 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos'
+param.cdf_method='ldlt'; % can change to 'kpm' or 'lanczos'
 param.num_vec=30;
 param.order=30;
 param.pts=linspace(.1,G.lmax,param.num_pts);
@@ -78,14 +78,29 @@ end
 
 % Poly approx order
 %K=10;
-n_its=6;
+n_its=20;
 
+cheb_sup_err=zeros(n_its,1);
+leg_sup_err=zeros(n_its,1);
+lanc_sup_err=zeros(n_its,1);
 warp_sup_err=zeros(n_its,1);
 spec_sup_err=zeros(n_its,1);
+
+cheb_sq_err=zeros(n_its,1);
+leg_sq_err=zeros(n_its,1);
+lanc_sq_err=zeros(n_its,1);
 warp_sq_err=zeros(n_its,1);
 spec_sq_err=zeros(n_its,1);
+
+cheb_time=zeros(n_its,1);
+leg_time=zeros(n_its,1);
+lanc_time=zeros(n_its,1);
 warp_time=zeros(n_its,1);
 spec_time=zeros(n_its,1);
+
+cheb_nmse=zeros(n_its,1);
+leg_nmse=zeros(n_its,1);
+lanc_nmse=zeros(n_its,1);
 warp_nmse=zeros(n_its,1);
 spec_nmse=zeros(n_its,1);
 
@@ -147,7 +162,7 @@ p_warped_c=p_warped.coeffs;
 p_warped_c(1)=p_warped_c(1)*2;
 
 % Include damping factors against Gibbs oscillations
-damping='jackson';
+damping='none';
 switch damping
     case 'jackson'
         gamma=ones(K+1,1);
@@ -166,6 +181,7 @@ switch damping
             % estimation of eigenvalue counts in an interval
         end
         p_warped_c=p_warped_c.*sigma;
+    case 'none'
     otherwise
         error('damping type not recognized');
 end
@@ -208,31 +224,31 @@ lsc=polyfit(G.e,y,K);
 
 % Compute polynomial approximation values at the actual eigenvalues and 
 % the corresponding superior and squared error
-leaveout_end=1;
+leaveout_end=0;
 
-% y_cheb=gsp_cheby_eval(G.e,c,[0,lmax_est]);
-% errors_cheb=y-y_cheb;
-% if leaveout_end
-%     errors_cheb=errors_cheb(1:ceil(3*G.N/4));
-% end
-% sup_err_cheb=max(abs(errors_cheb));
-% se_cheb=sum(errors_cheb.^2);
-% 
-% y_leg=gsp_cheby_eval(G.e,plegc,[0,lmax_est]);
-% errors_leg=y-y_leg;
-% if leaveout_end
-%     errors_leg=errors_leg(1:ceil(3*G.N/4));
-% end
-% sup_err_leg=max(abs(errors_leg));
-% se_leg=sum(errors_leg.^2);
-% 
-% y_lanczos=G.U'*gsp_filter(G,f,sum(G.U')',lanc_param);
-% errors_lanczos=y-y_lanczos;
-% if leaveout_end
-%     errors_lanczos=errors_lanczos(1:ceil(3*G.N/4));
-% end
-% sup_err_lanczos=max(abs(errors_lanczos));
-% se_lanczos=sum(errors_lanczos.^2);
+y_cheb=gsp_cheby_eval(G.e,c,[0,lmax_est]);
+errors_cheb=y-y_cheb;
+if leaveout_end
+    errors_cheb=errors_cheb(1:ceil(3*G.N/4));
+end
+sup_err_cheb=max(abs(errors_cheb));
+se_cheb=sum(errors_cheb.^2);
+
+y_leg=gsp_cheby_eval(G.e,plegc,[0,lmax_est]);
+errors_leg=y-y_leg;
+if leaveout_end
+    errors_leg=errors_leg(1:ceil(3*G.N/4));
+end
+sup_err_leg=max(abs(errors_leg));
+se_leg=sum(errors_leg.^2);
+
+y_lanczos=G.U'*gsp_filter(G,f,sum(G.U')',lanc_param);
+errors_lanczos=y-y_lanczos;
+if leaveout_end
+    errors_lanczos=errors_lanczos(1:ceil(3*G.N/4));
+end
+sup_err_lanczos=max(abs(errors_lanczos));
+se_lanczos=sum(errors_lanczos.^2);
 
 y_cheb_warped=gsp_cheby_eval(G.e,p_warped_c,[0,lmax_est]);
 errors_cheb_warped=y-y_cheb_warped;
@@ -259,6 +275,15 @@ se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2);
 % se_ls=sum(errors_ls.^2);
 
 Method = ["Chebyshev"; "Legengre"; "Reg. Lanczos"; "Warped Chebyshev"; "Spectrum-Adapted Ortho. Poly.";"Discrete LS";"Exact"];
+
+cheb_sup_err(K_ind)=sup_err_cheb;
+cheb_sq_err(K_ind)=se_cheb;
+
+leg_sup_err(K_ind)=sup_err_leg;
+leg_sq_err(K_ind)=se_leg;
+
+lanc_sup_err(K_ind)=sup_err_lanczos;
+lanc_sq_err(K_ind)=se_lanczos;
 
 warp_sup_err(K_ind)=sup_err_cheb_warped;
 warp_sq_err(K_ind)=se_cheb_warped;
@@ -387,31 +412,41 @@ for i=1:num_tests
     
 end
 
-% avg_ntime_cheb=mean(ntime_cheb);
-% avg_ntime_leg=mean(ntime_leg);
-% avg_ntime_lanczos=mean(ntime_lanczos);
+avg_ntime_cheb=mean(ntime_cheb);
+avg_ntime_leg=mean(ntime_leg);
+avg_ntime_lanczos=mean(ntime_lanczos);
 avg_ntime_warped=mean(ntime_warped);
 avg_ntime_spec=mean(ntime_spec);
 % avg_ntime_ls=mean(ntime_ls);
 % avg_ntime_exact=mean(ntime_exact);
 
-% avg_nmse_cheb=mean(nmse_cheb);
-% avg_nmse_leg=mean(nmse_leg);
-% avg_nmse_lanczos=mean(nmse_lanczos);
+avg_nmse_cheb=mean(nmse_cheb);
+avg_nmse_leg=mean(nmse_leg);
+avg_nmse_lanczos=mean(nmse_lanczos);
 avg_nmse_warped=mean(nmse_warped);
 avg_nmse_spec=mean(nmse_spec);
 % avg_nmse_ls=mean(nmse_ls);
 
+cheb_time(K_ind)=avg_ntime_cheb;
+leg_time(K_ind)=avg_ntime_leg;
+lanc_time(K_ind)=avg_ntime_lanczos;
 warp_time(K_ind)=avg_ntime_warped;
 spec_time(K_ind)=avg_ntime_spec;
 
+cheb_nmse(K_ind)=avg_nmse_cheb;
+leg_nmse(K_ind)=avg_nmse_leg;
+lanc_nmse(K_ind)=avg_nmse_lanczos;
 warp_nmse(K_ind)=avg_nmse_warped;
 spec_nmse(K_ind)=avg_nmse_spec;
 end
 
 polynomial_order=[1:n_its]'*10;
+
+cheb_table=table(polynomial_order,cheb_sup_err,cheb_sq_err,cheb_time,cheb_nmse)
+leg_table=table(polynomial_order,leg_sup_err,leg_sq_err,leg_time,leg_nmse)
+lanc_table=table(polynomial_order,lanc_sup_err,lanc_sq_err,lanc_time,lanc_nmse)
 warp_table=table(polynomial_order,warp_sup_err,warp_sq_err,warp_time,warp_nmse)
 spec_table=table(polynomial_order,spec_sup_err,spec_sq_err,spec_time,spec_nmse)
-parameters = cell2table({graph, param.cdf_method, filter,leaveout_end},'VariableNames',{'Graph' 'CDFmethod' 'Filter' 'leaveout_end'})
+parameters=cell2table({graph, param.cdf_method, filter,damping,leaveout_end},'VariableNames',{'Graph' 'CDFMethod' 'Filter' 'Damping' 'LeaveOutEnd'})
 
 
