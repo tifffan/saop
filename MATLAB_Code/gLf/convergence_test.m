@@ -15,7 +15,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='sensor';
+graph='gnp';
 switch graph
     case 'gnp'
         N=500;
@@ -48,7 +48,7 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='ldlt'; % can change to 'kpm' or 'lanczos'
+param.cdf_method='ldlt'; % can change to 'kpm' or 'lanczos' or 'ldlt'
 param.num_vec=30;
 param.order=30;
 param.pts=linspace(.1,G.lmax,param.num_pts);
@@ -76,9 +76,13 @@ switch filter
         error('filter type not recognized');
 end
 
+tic
+G=gsp_compute_fourier_basis(G);
+time_exact_spec=toc;
+
 % Poly approx order
 %K=10;
-n_its=20;
+n_its=6;  % Order increases from 10 to 10*n_its with step 10
 
 cheb_sup_err=zeros(n_its,1);
 leg_sup_err=zeros(n_its,1);
@@ -127,7 +131,7 @@ lanc_param.order=K;           % set K = larger constant for testing
 g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
 gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CDF
 
-start_pts='even';
+start_pts='cheb';
 switch start_pts
     case 'cheb'
         chebpts=cos((0:K)*pi/K)'; 
@@ -216,9 +220,7 @@ c_spec_adapted_ortho = matrix_adapted_poly_coeff(G, f, absc', weights', Pi, K);
 
 % Least squares (assumes full knowledge of eigenvalues; just for comparison
 % to ideal; not scalable)
-tic
-G=gsp_compute_fourier_basis(G);
-time_exact_spec=toc;
+
 y=f(G.e);
 lsc=polyfit(G.e,y,K);
 

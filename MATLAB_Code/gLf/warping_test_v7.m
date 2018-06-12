@@ -15,11 +15,11 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='sensor';
+graph='net25';
 switch graph
     case 'gnp'
         N=500;
-        p=.1;
+        p=.2;
         G=gsp_erdos_renyi(N,p);
     case 'sensor'
         N=500;
@@ -48,10 +48,10 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos'
+param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos' or 'ldlt'
 param.num_vec=30;
-param.order=30;
-param.pts=linspace(.1,G.lmax,param.num_pts);
+param.order=100;
+%param.pts=linspace(.1,G.lmax,param.num_pts);
 G=spectral_cdf_approx2(G,param); 
 
 
@@ -77,7 +77,7 @@ switch filter
 end
 
 % Poly approx order
-K=10;
+K=15;
 % for K_ind=1:6
 %     K=K_ind*10
 
@@ -97,24 +97,26 @@ lanc_param.method='lanczos';
 lanc_param.order=K;           % set K = larger constant for testing
 
 % Warped
-%g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
-g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
+g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
+%g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
 gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CDF
 
-start_pts='even';
+
+start_pts='cheb';
 switch start_pts
     case 'cheb'
         chebpts=cos((0:K)*pi/K)'; 
-        %chebpts_tx=(chebpts+1)*lmax_est/2;
-        chebpts_tx=(chebpts+1)*(lmax_est+0.1)/2;
+        chebpts_tx=(chebpts+1)*lmax_est/2;
+        %chebpts_tx=(chebpts+1)*(lmax_est+0.1)/2;
         chebpts_tx=sort(chebpts_tx,'ascend');
     case 'even'
-        %chebpts_tx=linspace(0,lmax_est,K+1);
-        chebpts_tx=linspace(-0.1,lmax_est+0.1,K+1);
+        chebpts_tx=linspace(0,lmax_est,K+1);
+        %chebpts_tx=linspace(-0.1,lmax_est+0.1,K+1);
     otherwise
         error('grid type not recognized');
 end
 chebpts_warped=gi(chebpts_tx);
+chebpts_warped(1)=0;
 
 % Note: since G.spectrum_cdf_approx returns 0 at 0, the first
 % interpolation point should always be 0 here. However, there may not be
@@ -122,21 +124,21 @@ chebpts_warped=gi(chebpts_tx);
 % option to force one point to be the estimate of the maximum eigenvalue
 % for now
 
-force_max=1;
+force_max=0;
 if force_max
     chebpts_warped(end)=lmax_est;
     chebpts_warped=sort(chebpts_warped,'ascend');
 end
 
 % Expand interval (0,lmax)
-%dom=domain(0,lmax_est);
-dom=domain(-0.1,lmax_est+0.1);
-p_warped=chebfun.interp1(chebpts_warped,f(chebpts_warped),dom);
-p_warped_c=p_warped.coeffs;
-p_warped_c(1)=p_warped_c(1)*2;
+dom=domain(0,lmax_est);
+%dom=domain(-0.1,lmax_est+0.1);
+%p_warped=chebfun.interp1(chebpts_warped,f(chebpts_warped),dom);
+%p_warped_c=p_warped.coeffs;
+%p_warped_c(1)=p_warped_c(1)*2;
 
 % Include damping factors against Gibbs oscillations
-damping='jackson';
+damping='none';
 switch damping
     case 'jackson'
         gamma=ones(K+1,1);
@@ -155,6 +157,7 @@ switch damping
             % estimation of eigenvalue counts in an interval
         end
         p_warped_c=p_warped_c.*sigma;
+    case 'none'
     otherwise
         error('damping type not recognized');
 end
@@ -197,7 +200,7 @@ lsc=polyfit(G.e,y,K);
 
 % Compute polynomial approximation values at the actual eigenvalues and 
 % the corresponding superior and squared error
-leaveout_end=1;
+leaveout_end=0;
 
 y_cheb=gsp_cheby_eval(G.e,c,[0,lmax_est]);
 errors_cheb=y-y_cheb;
@@ -224,6 +227,7 @@ sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
 
 y_cheb_warped=gsp_cheby_eval(G.e,p_warped_c,[0,lmax_est]);
+%y_cheb_warped=barycentric(
 errors_cheb_warped=y-y_cheb_warped;
 if leaveout_end
     errors_cheb_warped=errors_cheb_warped(1:ceil(3*G.N/4));
@@ -276,6 +280,7 @@ xlabel('\lambda');
 ylabel('Filter approximations');
 plot(G.e, y_lanczos, 'LineWidth',4,'DisplayName','Regular Lanczos');
 plot(G.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalues');
+xlim([0,40]);
 
 % Figure 3: warped interpolation w/ damping
 figure;
