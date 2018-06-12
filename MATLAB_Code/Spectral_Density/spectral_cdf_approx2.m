@@ -27,7 +27,7 @@ end
 if ~isfield(param,'cdf_method')
     cdf_method='lanczos';
 else
-    cdf_method=param.cdf_method; % 'lanczos' or 'kpm' or 'ldl'
+    cdf_method=param.cdf_method; % 'lanczos' or 'kpm' or 'ldlt'
 end
 
 switch cdf_method
