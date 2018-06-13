@@ -33,8 +33,8 @@ switch graph
         N=5000;
         G=gsp_community(N);
     case 'net25'
-        load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/net25.mat');
-        %load('/Users/davidshuman/Dropbox/Current Research Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/net25 graph data/net25.mat');
+        %load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/net25.mat');
+        load('/Users/davidshuman/Dropbox/Current_Research_Work/MCSFB/Shuni_Thesis/GitHub/mcsfb2018/Data/net25_data/net25.mat');
         A=Problem.A;
         A = A - diag(diag(A)); 
         A(4228,6327) = 1;
@@ -48,9 +48,9 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='kpm'; % can change to 'lanczos'
+param.cdf_method='lanczos'; % can change to 'lanczos'
 param.num_vec=30;
-param.order=100;
+param.order=60;
 G=spectral_cdf_approx2(G,param); 
 
 
