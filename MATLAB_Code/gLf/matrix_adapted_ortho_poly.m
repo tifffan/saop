@@ -14,7 +14,7 @@ if ~isfield(param,'grid_order')
     grid_order=poly_order+1;
 else
     if param.grid_order< (poly_order+1)s
-        error('Grid order must be greater than poly order');
+        error('Grid order must be greater than polynomial order');
     else
         grid_order=param.grid_order;
     end
@@ -67,14 +67,26 @@ weights=weights/sum(weights);
 % the support pts?
 
 
+
 % Compute the recurrence coefficients from the discrete measure, using the
-% Lanczos method described in Gautschi, Section 2.2.3.2 (pp. 97-98)
+% Lanczos method described in Gautschi, Section 2.2.3.2 (pp. 96-98)
 xw=[absc',weights']; %TODO: place weights at absc or in between?
 %tic
 recurr_coeffs=lanczos(poly_order+1,xw); % from https://www.cs.purdue.edu/archives/2002/wxg/codes/OPQ.html
-Pi=eval_pi(recurr_coeffs,absc');
 %lanczos_time=toc
+
+
+
+% Evaluate Pi at a discrete set of pts
+Pi=eval_pi(recurr_coeffs,absc');
+
 %tic
 %[recurr_coeffs,Pi]=stieltjes(poly_order+1,xw);
 %stieltjes_time=toc
 %diff=abs(recurr_coeffs-recurr_coeffs2)
+
+
+
+
+
+

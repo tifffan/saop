@@ -57,7 +57,7 @@ end
 if ~isfield(param,'verbose'), param.verbose = 1; end;
 
 
-Nscales=size(c,2);
+Nscales=size(c,2);       % Number of polynomial filters
 
 M = size(c,1);
 % To handle different order of approximation
@@ -100,7 +100,7 @@ a2 = (arange(2) + arange(1))/2;
 Twf_old=signal;                     % j = 0;
 Twf_cur=G.L*signal-ab(1,1)*signal;  % j = 1;
 
-Nv = size(signal,2);
+Nv = size(signal,2);          % Number of signals being filtered
 r = zeros(G.N*Nscales,Nv);
 
 for ii=1:Nscales
@@ -108,7 +108,7 @@ for ii=1:Nscales
 end
 
 for k=2:maxM
-    Twf_new = G.L*Twf_cur-ab(k,1)*Twf_cur - ab(k,2)*Twf_old; % this is the three-term recurrence relation in (1.3.2) in Gautschi. Should we be using the on in (1.3.13) instead?
+    Twf_new = G.L*Twf_cur-ab(k,1)*Twf_cur - ab(k,2)*Twf_old; % this is the three-term recurrence relation in (1.3.2) in Gautschi. Should we be using (1.3.13) instead?
     for ii=1:Nscales
         if 1+k <= M
             r((1:G.N)+G.N * (ii-1),:) =...
