@@ -12,7 +12,7 @@ spI = speye(num_vec);
 coeffs(1) = 1/2*coeffs(1);
 coeffs_matrix = kron(coeffs, spI);
 
-r = G.TkbarLX*coeffs_matrix;
+r = G.TkbarLX(:,1:size(coeffs_matrix,1))*coeffs_matrix;
 
 end
 
