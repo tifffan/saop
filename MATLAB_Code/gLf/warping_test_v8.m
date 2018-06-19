@@ -15,7 +15,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='net25';
+graph='community';
 switch graph
     case 'gnp'
         N=500;
@@ -67,17 +67,18 @@ gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CD
 
 % Filters - testing mostly for analytic filters. If we have a
 % discontinuity, we need more interpolation points near the discontinuity
-filter='mid';
+filter='inverse';
 
 switch filter
     case 'inverse'
         tau=.5; 
         f=@(x) tau./(tau+x);
     case 'low'
-        f=@(x) (x<=(G.lmax/2));
-        %f=@(x) (x<=gi(G.lmax/2));
+        %f=@(x) (x<=(G.lmax/2));
+        f=@(x) (x<=gi(G.lmax/2));
     case 'mid'
-        f=@(x) (x>=(G.lmax/3) & x<=(G.lmax*2/3)); % usually needs higher polynomial order
+        %f=@(x) (x>=(G.lmax/3) & x<=(G.lmax*2/3)); % usually needs higher polynomial order
+        f=@(x) (x<=gi(G.lmax/3) & x<=gi(G.lmax*2/3));
     case 'high'
         f=@(x) (x>=(G.lmax/2));
     case 'heat'
@@ -90,7 +91,7 @@ end
 
 %--------------------------------------------------------------------------
 % Poly approx order
-K=100;
+K=60;
 start_pts_interp='cheb'; % K pts for warped chebyshev interpolation
 start_pts_ls='cheb'; % G.N/10 pts for warped LS fitting
 
@@ -172,11 +173,18 @@ p_warped_c(1)=p_warped_c(1)*2;
 
 % Piecewise cubic hermite polynomial interpolation + Chebyshev approximation
 p_warped_pchip=pchip(pts_warped_interp,f(pts_warped_interp));
-p_warped_pchip_fun=@(x) pchip(pts_warped_interp,f(pts_warped_interp),x); 
-p_warped_pchip_interp_c = gsp_cheby_coeff(G, p_warped_pchip_fun, K, 2000);
+p_warped_pchip_fun=chebfun(@(x) pchip(pts_warped_interp,f(pts_warped_interp),x),[0,G.lmax],'splitting','on'); 
+p_warped_pchip_interp_c=chebcoeffs(p_warped_pchip_fun,K+1);
+p_warped_pchip_interp_c(1)=p_warped_pchip_interp_c(1)*2;
+
+% Many sample points + LS fitting
+p_warped_lsc=polyfit(pts_warped_ls,f(pts_warped_ls),K);
+%p_warped_lsc_fun=chebfun(@(s) polyval(p_warped_lsc,s),[0,G.lmax],'splitting','on');
+%p_warped_lsc_c=chebcoeffs(p_warped_lsc_fun,K+1);
+%p_warped_lsc_c(1)=p_warped_lsc_c(1)*2;
 
 % Include damping factors against Gibbs oscillations
-damping='jackson';
+damping='sigma';
 switch damping
     case 'jackson'
         gamma=ones(K+1,1);
@@ -188,6 +196,7 @@ switch damping
         end
         p_warped_c=p_warped_c.*gamma;
         p_warped_pchip_interp_c=p_warped_pchip_interp_c.*gamma;
+        %p_warped_lsc_c=p_warped_lsc_c.*gamma;
     case  'sigma'
         sigma=ones(K+1,1);
         for k=1:K
@@ -197,13 +206,13 @@ switch damping
         end
         p_warped_c=p_warped_c.*sigma;
         p_warped_pchip_interp_c=p_warped_pchip_interp_c.*sigma;
+        %p_warped_lsc_c=p_warped_lsc_c.*sigma;
     case 'none'
     otherwise
         error('damping type not recognized');
 end
 
-% Many sample points + LS fitting
-p_warped_lsc=polyfit(pts_warped_ls,f(pts_warped_ls),K); 
+
 
 
 % Figure 1: warped points on approximated CDF
@@ -293,6 +302,7 @@ sup_err_cheb_warped_pchip_interp=max(abs(errors_cheb_warped_pchip_interp));
 se_cheb_warped_pchip_interp=sum(errors_cheb_warped_pchip_interp.^2);
 
 y_cheb_warped_ls=polyval(p_warped_lsc,G2.e); % many sample points warped + ls fitting
+%y_cheb_warped_ls=gsp_cheby_eval(G2.e,p_warped_lsc_c,[0,G.lmax]);
 errors_cheb_warped_ls=y-y_cheb_warped_ls;
 if leaveout_end
     errors_cheb_warped_ls=errors_cheb_warped_ls(1:ceil(3*G.N/4));
@@ -338,6 +348,7 @@ yy_cheb_warped=p_warped(xx);              % chebyshev on warped pts
 yy_cheb_warped_pchip=ppval(p_warped_pchip,xx);       % piecewise cubic interpolation, ideal
 yy_cheb_warped_pchip_interp=gsp_cheby_eval(xx,p_warped_pchip_interp_c,[0,G.lmax]); % approx by chebyshev
 yy_cheb_warped_ls=polyval(p_warped_lsc,xx);
+%yy_cheb_warped_ls=gsp_cheby_eval(xx,p_warped_lsc_c,[0,G.lmax]);
 yy_spec_adapted_ortho=three_term_eval(G,xx,ab,c_spec_adapted_ortho);
 yy_ls=polyval(lsc,xx);
 
@@ -398,14 +409,17 @@ set(plot3,{'Color'},morecolors);
 set(plot3, {'MarkerFaceColor'}, get(plot3,'Color')); 
 hold on;
 plot(G2.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-legend(plot3,'Chebyshev','Legendre','Warped Chebyshev','Warped PCHIP','Warped PCHIP+Chebyshev','Warped LS','Spectrum-Adapted Ortho. Poly.','Discrete LS','Lanczos','Location','SouthEast');  
+%legend(plot3,'Chebyshev','Legendre','Warped Chebyshev','Warped PCHIP','Warped PCHIP+Chebyshev','Warped LS','Spectrum-Adapted Ortho. Poly.','Discrete LS','Lanczos','Location','SouthEast');  
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
-title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', CDF=',param.cdf_method,', StartPtsInterp=',start_pts_interp,', StartPtsLS=',start_pts_ls]);
+title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', StartPtsLS=',start_pts_ls]);
+%title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', CDF=',param.cdf_method,', StartPtsInterp=',start_pts_interp,', StartPtsLS=',start_pts_ls]);
 grid on;
+%xlim([0,4.5]);
+%ylim([10e-7,10e2]);
 
 % Test f(L)b on random signal b
-num_tests=5;
+num_tests=50;
 
 ntime_cheb=zeros(num_tests,1);
 ntime_leg=zeros(num_tests,1);
