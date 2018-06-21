@@ -15,7 +15,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='community';
+graph='net25';
 switch graph
     case 'gnp'
         N=500;
@@ -53,12 +53,10 @@ time_exact_spec=toc;
 
 %cdf_approx
 G=gsp_estimate_lmax(G);
-param.num_pts=50; % for approximating spectral cdf 
-
 param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos' or 'ldlt'
-param.num_vec=30;
-param.order=100;
-%param.pts=linspace(.1,G.lmax,param.num_pts);
+param.num_pts=50; % for kpm and ldlt
+param.num_vec=30; %for lanczos only
+param.order=100; %100 works for kpm and ldlt
 G=spectral_cdf_approx2(G,param); 
 
 % CDF and inverse CDF
@@ -78,7 +76,7 @@ switch filter
         f=@(x) (x<=gi(G.lmax/2));
     case 'mid'
         %f=@(x) (x>=(G.lmax/3) & x<=(G.lmax*2/3)); % usually needs higher polynomial order
-        f=@(x) (x<=gi(G.lmax/3) & x<=gi(G.lmax*2/3));
+        f=@(x) (x>=gi(G.lmax/3) & x<=gi(G.lmax*2/3));
     case 'high'
         f=@(x) (x>=(G.lmax/2));
     case 'heat'
@@ -107,7 +105,10 @@ plegc(1)=plegc(1)*2;
 
 % Regular Lanczos
 lanc_param.method='lanczos';
-lanc_param.order=K;           % set K = larger constant for testing
+lanc_param.order=K;
+x=sum(G2.U')';
+[V,H]=lanczos(G.L,K,x);
+e=eig(H);
 
 % % Warped
 % g=chebfun(@(s) G.lmax*G.spectrum_cdf_approx(s),[0,G.lmax],'splitting','on'); 
@@ -163,13 +164,14 @@ if force_max
 end
 
 % Chebyshev interpolation on warped points
-dom=domain(0,G.lmax);
-p_warped=chebfun.interp1(pts_warped_interp,f(pts_warped_interp),dom);
-p_warped_c=p_warped.coeffs;
+%dom=domain(0,G.lmax);
+% p_warped=chebfun.interp1(pts_warped_interp,f(pts_warped_interp),dom);
+% p_warped_c=p_warped.coeffs;
+% p_warped_c(1)=p_warped_c(1)*2;
+[p_warped,s_warped,mu_warped]=polyfit(pts_warped_interp,f(pts_warped_interp),K);
+p_warped_fun=chebfun(@(x) polyval(p_warped,x,s_warped,mu_warped),[0,G.lmax],'splitting','on'); 
+p_warped_c=chebcoeffs(p_warped_fun,K+1);
 p_warped_c(1)=p_warped_c(1)*2;
-
-% Legendre interpolation on warped points
-%p_warped_c_leg=polyfit(pts_warped_interp,f(pts_warped_interp),K);
 
 % Piecewise cubic hermite polynomial interpolation + Chebyshev approximation
 p_warped_pchip=pchip(pts_warped_interp,f(pts_warped_interp));
@@ -178,8 +180,8 @@ p_warped_pchip_interp_c=chebcoeffs(p_warped_pchip_fun,K+1);
 p_warped_pchip_interp_c(1)=p_warped_pchip_interp_c(1)*2;
 
 % Many sample points + LS fitting
-p_warped_lsc=polyfit(pts_warped_ls,f(pts_warped_ls),K);
-%p_warped_lsc_fun=chebfun(@(s) polyval(p_warped_lsc,s),[0,G.lmax],'splitting','on');
+[p_warped_lsc,s_warped_ls,mu_warped_ls]=polyfit(pts_warped_ls,f(pts_warped_ls),K);
+%p_warped_lsc_fun=chebfun(@(x) polyval(p_warped_lsc,x,s_warped_ls,mu_warped_ls),[0,G.lmax],'splitting','on');
 %p_warped_lsc_c=chebcoeffs(p_warped_lsc_fun,K+1);
 %p_warped_lsc_c(1)=p_warped_lsc_c(1)*2;
 
@@ -224,7 +226,7 @@ hold on;
 plot(pts_warped_interp,zeros(length(pts_warped_interp),1),'xr','LineWidth',...
             4,'MarkerSize',15);
 plot(zeros(length(pts_warped_interp),1),pts_tx_interp,'xr','LineWidth',...
-            4,'MarkerSize',15);
+            4,'MarkerSize',15);   
 %xlim([0,70]);
 %ylim([0,70]);
 set(gca,'FontSize',24);
@@ -242,7 +244,7 @@ c_spec_adapted_ortho = matrix_adapted_poly_coeff(G, f, absc', weights', Pi, K);
 % Least squares (assumes full knowledge of eigenvalues; just for comparison
 % to ideal; not scalable)
 y=f(G2.e);
-lsc=polyfit(G2.e,y,K);
+[lsc,s_ls,mu_ls]=polyfit(G2.e,y,K);
 % Sampling from points, then LS fitting, for higher stability
 %J=G.N/10;
 %I=randperm(G.N);
@@ -277,7 +279,9 @@ end
 sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
 
-y_cheb_warped=p_warped(G2.e); % original warped chebyshev
+y_cheb_warped=gsp_cheby_eval(G2.e,p_warped_c,[0,G.lmax]); %w/ damping
+%y_cheb_warped=polyval(p_warped,G2.e,s_warped,mu_warped); %w/out damping
+%y_cheb_warped=p_warped(G2.e);
 errors_cheb_warped=y-y_cheb_warped;
 if leaveout_end
     errors_cheb_warped=errors_cheb_warped(1:ceil(3*G.N/4));
@@ -301,7 +305,8 @@ end
 sup_err_cheb_warped_pchip_interp=max(abs(errors_cheb_warped_pchip_interp));
 se_cheb_warped_pchip_interp=sum(errors_cheb_warped_pchip_interp.^2);
 
-y_cheb_warped_ls=polyval(p_warped_lsc,G2.e); % many sample points warped + ls fitting
+y_cheb_warped_ls=polyval(p_warped_lsc,G2.e,s_warped_ls,mu_warped_ls);
+%y_cheb_warped_ls=polyval(p_warped_lsc,G2.e); % many sample points warped + ls fitting
 %y_cheb_warped_ls=gsp_cheby_eval(G2.e,p_warped_lsc_c,[0,G.lmax]);
 errors_cheb_warped_ls=y-y_cheb_warped_ls;
 if leaveout_end
@@ -318,7 +323,7 @@ end
 sup_err_spec_adapted_ortho=max(abs(errors_spec_adapted_ortho));
 se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2);
 
-y_ls=polyval(lsc,G2.e);
+y_ls=polyval(lsc,G2.e,s_ls,mu_ls);
 errors_ls=y-y_ls;
 if leaveout_end
     errors_ls=errors_ls(1:ceil(3*G.N/4));
@@ -343,14 +348,15 @@ yy=f(xx);
 
 yy_cheb=gsp_cheby_eval(xx,c,[0,G.lmax]);
 yy_leg=gsp_cheby_eval(xx,plegc,[0,G.lmax]);
-yy_cheb_warped=p_warped(xx);              % chebyshev on warped pts
-%yy_leg_warped=polyval(p_warped_c_leg,xx); % legendre on warped pts (should be identical to above)
+%yy_cheb_warped=p_warped(xx);              % chebyshev on warped pts
+yy_cheb_warped=gsp_cheby_eval(xx,p_warped_c,[0,G.lmax]); %w/ damping
+%yy_cheb_warped=polyval(p_warped,xx,s_warped,mu_warped); %w/out damping
 yy_cheb_warped_pchip=ppval(p_warped_pchip,xx);       % piecewise cubic interpolation, ideal
 yy_cheb_warped_pchip_interp=gsp_cheby_eval(xx,p_warped_pchip_interp_c,[0,G.lmax]); % approx by chebyshev
-yy_cheb_warped_ls=polyval(p_warped_lsc,xx);
+yy_cheb_warped_ls=polyval(p_warped_lsc,xx,s_warped_ls,mu_warped_ls);
 %yy_cheb_warped_ls=gsp_cheby_eval(xx,p_warped_lsc_c,[0,G.lmax]);
 yy_spec_adapted_ortho=three_term_eval(G,xx,ab,c_spec_adapted_ortho);
-yy_ls=polyval(lsc,xx);
+yy_ls=polyval(lsc,xx,s_ls,mu_ls);
 
 % Figure 2: approximations for function g
 figure;
@@ -367,8 +373,12 @@ ylabel('Filter approximations');
 plot(G2.e, y_lanczos, 'LineWidth',4,'DisplayName','Regular Lanczos','Color',[1 0.6 0.8]);
 plot(xx, yy, 'LineWidth',4,'DisplayName','g','Color',[0.9 0.5 0.25]);
 plot(G2.e,zeros(G.N,1),'xk','LineWidth',2,'MarkerSize',6,'DisplayName','Eigenvalues');
-title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', CDF=',param.cdf_method,', StartPtsInterp=',start_pts_interp,', StartPtsLS=',start_pts_ls]);
+plot(pts_warped_interp,f(pts_warped_interp),'xr','LineWidth',2,'MarkerSize',10,'DisplayName','Warped Chebyshev Pts');
+plot(e,f(e),'xb','LineWidth',2,'MarkerSize',10,'DisplayName','Lanczos Pts');
+%title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', CDF=',param.cdf_method,', StartPtsInterp=',start_pts_interp,', StartPtsLS=',start_pts_ls]);
+title(['Graph=',graph,', Filter=',filter,', K=',num2str(K)]);
 %xlim([0,40]);
+ylim([0,1]);
 
 % Figure 3: warped interpolation (w/ damping)
 figure;
@@ -453,31 +463,33 @@ for i=1:num_tests
     % can change to add this time only once for all b's
     ntime_exact(i)=ntime_exact(i)+time_exact_spec;
     tic
-    gLf_ls=G2.U*(polyval(lsc,G2.e).*bhat);
+    gLf_ls=G2.U*(polyval(lsc,G2.e,s_ls,mu_ls).*bhat);
     ntime_ls(i)=toc;
     % add time to compute exact spectrum for every new vector b
     % can change to add this time only once for all b's
     ntime_ls(i)=ntime_ls(i)+time_exact_spec;
     tic
-    gLf_cheb=gsp_cheby_op(G2,c,b); 
+    gLf_cheb=gsp_cheby_op(G,c,b); 
     ntime_cheb(i)=toc;
     tic
-    gLf_leg=gsp_cheby_op(G2,plegc,b); 
+    gLf_leg=gsp_cheby_op(G,plegc,b); 
     ntime_leg(i)=toc;
     tic
-    gLf_lanczos=gsp_filter(G2,f,b,lanc_param);
+    gLf_lanczos=gsp_filter(G,f,b,lanc_param);
     ntime_lanczos(i)=toc;
     tic
-    gLf_warped=gsp_cheby_op(G2,p_warped_c,b); 
+    %gLf_warped=poly_op(G,p_warped,b); 
+    gLf_warped=G2.U*(polyval(p_warped,G2.e,s_warped,mu_warped).*bhat);
     ntime_warped(i)=toc;
     tic
     gLf_warped_pchip_interp=gsp_cheby_op(G,p_warped_pchip_interp_c,b);
     ntime_warped_pchip_interp(i)=toc;
     tic
-    gLf_warped_ls=poly_op(G,p_warped_lsc,b);
+    %gLf_warped_ls=poly_op(G,p_warped_lsc,b);
+    gLf_warped_ls=G2.U*(polyval(p_warped_lsc,G2.e,s_warped_ls,mu_warped_ls).*bhat);
     ntime_warped_ls(i)=toc;
     tic
-    gLf_spec=three_term_recurr_op(G2,ab,c_spec_adapted_ortho,b);
+    gLf_spec=three_term_recurr_op(G,ab,c_spec_adapted_ortho,b);
     ntime_spec(i)=toc;
 
     nmse_cheb(i)=sum((gLf_cheb-gLf_exact).^2)/sum(gLf_exact.^2);
