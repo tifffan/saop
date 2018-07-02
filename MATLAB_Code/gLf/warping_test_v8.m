@@ -41,7 +41,7 @@ switch graph
         A(4228,6327) = 1;
         A(6327,4228) = 1;
         G=gsp_graph(A);
-        G.L=G.L./20;
+        %G.L=G.L./20;
     otherwise
         error('graph type not recognized');
 end
@@ -65,7 +65,7 @@ gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CD
 
 % Filters - testing mostly for analytic filters. If we have a
 % discontinuity, we need more interpolation points near the discontinuity
-filter='inverse';
+filter='heat';
 
 switch filter
     case 'inverse'
@@ -89,16 +89,17 @@ end
 
 %--------------------------------------------------------------------------
 % Poly approx order
-K=60;
+K=100;
 start_pts_interp='cheb'; % K pts for warped chebyshev interpolation
 start_pts_ls='cheb'; % G.N/10 pts for warped LS fitting
 
 % Chebyshev
-h=chebfun(@(s) f(s),[0,G.lmax],'splitting','on');
-c=chebcoeffs(h,K+1); 
-c(1)=c(1)*2;
+% c=chebcoeffs(h,K+1); 
+% c(1)=c(1)*2;
+c=gsp_cheby_coeff(G,f,K,1000);
 
 % Legendre
+h=chebfun(@(s) f(s),[0,G.lmax],'splitting','on');
 pleg = polyfit(h,K);
 plegc=pleg.coeffs;
 plegc(1)=plegc(1)*2;
@@ -413,20 +414,23 @@ grid on;
 
 % Figure 5: absolute error comparison focused on eigenvalues
 figure;
-plot3=semilogy(G2.e,[abs(errors_cheb),abs(errors_leg),abs(errors_cheb_warped),abs(errors_cheb_warped_pchip),abs(errors_cheb_warped_pchip_interp),abs(errors_cheb_warped_ls),abs(errors_spec_adapted_ortho),abs(errors_ls),abs(y-y_lanczos)],'-o','LineWidth',1,'MarkerSize',10);
+plot3=semilogy(G2.e,[abs(errors_ls),abs(errors_cheb),abs(errors_leg),abs(y-y_lanczos),abs(errors_cheb_warped),abs(errors_cheb_warped_pchip_interp),abs(errors_cheb_warped_ls),abs(errors_spec_adapted_ortho)],'-o','LineWidth',1,'MarkerSize',6);
 set(gca,'FontSize',20);
+morecolors={[0.308 0.785 0.636]; [0 0.4470 0.7410]; [0.8500 0.3250 0.0980]; [1 0.6 0.8]; [0.9290 0.6940 0.1250]; [0.4660 0.6740 0.1880]; [0.3010 0.7450 0.9330]; [0.4940 0.1840 0.5560]};
 set(plot3,{'Color'},morecolors);
-set(plot3, {'MarkerFaceColor'}, get(plot3,'Color')); 
+set(plot3, {'MarkerFaceColor'}, morecolors); 
 hold on;
 plot(G2.e,ones(G.N,1),'xk','LineWidth',2,'MarkerSize',6);
-%legend(plot3,'Chebyshev','Legendre','Warped Chebyshev','Warped PCHIP','Warped PCHIP+Chebyshev','Warped LS','Spectrum-Adapted Ortho. Poly.','Discrete LS','Lanczos','Location','SouthEast');  
+legend(plot3,'Discrete LS','Chebyshev','Legendre','Lanczos','Warped Chebyshev','Warped PCHIP+Chebyshev','Warped LS','Spectrum-Adapted Ortho. Poly.','Location','SouthEast');  
 xlabel('\lambda');
 ylabel('$$|\tilde{g}(\lambda)-g(\lambda)|$$','Interpreter','latex');
-title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', StartPtsLS=',start_pts_ls]);
+title(['G=',graph,', f=',filter,', K=',num2str(K),', LS=',start_pts_ls,', Damp=',damping]);
 %title(['Graph=',graph,', Filter=',filter,', K=',num2str(K),', CDF=',param.cdf_method,', StartPtsInterp=',start_pts_interp,', StartPtsLS=',start_pts_ls]);
 grid on;
 %xlim([0,4.5]);
-%ylim([10e-7,10e2]);
+ylim([10e-15,10e0]);
+
+
 
 % Test f(L)b on random signal b
 num_tests=50;
