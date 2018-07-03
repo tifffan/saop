@@ -140,7 +140,11 @@ switch cdf_method
             end
         end
         interp_y=counts/(G.N-1);
-
+        for i=1:param.num_pts-1
+            if interp_y(i+1)<interp_y(i)
+                interp_y(i+1)=interp_y(i);
+            end
+        end
         G.spectrum_cdf_approx = @(s) gsp_mono_cubic_warp_fn(interp_x,interp_y,s);
 
 
