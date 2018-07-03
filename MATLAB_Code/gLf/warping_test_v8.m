@@ -89,7 +89,7 @@ end
 
 %--------------------------------------------------------------------------
 % Poly approx order
-K=100;
+K=25;
 start_pts_interp='cheb'; % K pts for warped chebyshev interpolation
 start_pts_ls='cheb'; % G.N/10 pts for warped LS fitting
 
