@@ -86,10 +86,13 @@ switch filter
         error('filter type not recognized');
 end
 
+% inverse filter
+f_chebfun=chebfun(@(s) f(s),[0,G.lmax],'splitting','on'); 
+fi=inv(f_chebfun,'splitting','on');
 
 %--------------------------------------------------------------------------
 % Poly approx order
-K=80;
+K=100;
 start_pts_interp='cheb'; % K pts for warped chebyshev interpolation
 start_pts_ls='cheb'; % G.N/10 pts for warped LS fitting
 
@@ -115,14 +118,19 @@ e=eig(H);
 %start_pts_interp='cheb';
 switch start_pts_interp
     case 'cheb'
-        pts_interp=cos((0:K)*pi/K)'; 
+        pts_interp=cos((0:(K/2))*pi/(K/2))'; 
         pts_tx_interp=(pts_interp+1)*G.lmax/2;
         pts_tx_interp=sort(pts_tx_interp,'ascend');
     case 'even'
         pts_tx_interp=linspace(0,G.lmax,K+1);
 end
 
-pts_warped_interp=gi(pts_tx_interp);
+pts_warped_interp_1=gi(pts_tx_interp)';
+%pts_warped_interp_2=fi(linspace(0.01,0.99,K/2));
+pts_warped_interp_2=[linspace(gi(G.lmax/3)-G.lmax/5,gi(G.lmax/3)+G.lmax/5,K/4) ...
+    linspace(gi(G.lmax*2/3)-G.lmax/5,gi(G.lmax*2/3)+G.lmax/5,K/4)];
+pts_warped_interp=[pts_warped_interp_1 pts_warped_interp_2]';
+pts_warped_interp=sort(pts_warped_interp,'ascend');
 pts_warped_interp(1)=0;
 
 % Starting points for LS fitting
@@ -225,8 +233,8 @@ gsp_plot_filter(G,Fbar,fbarparam);
 hold on;
 plot(pts_warped_interp,zeros(length(pts_warped_interp),1),'xr','LineWidth',...
             4,'MarkerSize',15);
-plot(zeros(length(pts_warped_interp),1),pts_tx_interp,'xr','LineWidth',...
-            4,'MarkerSize',15);   
+%plot(zeros(length(pts_warped_interp),1),pts_tx_interp,'xr','LineWidth',...
+%            4,'MarkerSize',15);   
 %xlim([0,70]);
 %ylim([0,70]);
 set(gca,'FontSize',24);
@@ -413,7 +421,7 @@ grid on;
 
 % Figure 5: absolute error comparison focused on eigenvalues
 figure;
-plot3=semilogy(G2.e,[abs(errors_ls),abs(errors_cheb),abs(errors_leg),abs(y-y_lanczos),abs(errors_cheb_warped),abs(errors_cheb_warped_pchip_interp),abs(errors_cheb_warped_ls),abs(errors_spec_adapted_ortho)],'-o','LineWidth',1,'MarkerSize',6);
+plot3=semilogy(G2.e,[abs(errors_ls),abs(errors_cheb),abs(errors_leg),abs(y-y_lanczos),abs(errors_cheb_warped),abs(errors_cheb_warped_pchip_interp),abs(errors_cheb_warped_ls),abs(errors_spec_adapted_ortho)],'-o','LineWidth',1,'MarkerSize',10);
 set(gca,'FontSize',20);
 morecolors={[0.308 0.785 0.636]; [0 0.4470 0.7410]; [0.8500 0.3250 0.0980]; [1 0.6 0.8]; [0.9290 0.6940 0.1250]; [0.4660 0.6740 0.1880]; [0.3010 0.7450 0.9330]; [0.4940 0.1840 0.5560]};
 set(plot3,{'Color'},morecolors);
