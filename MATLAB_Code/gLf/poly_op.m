@@ -4,7 +4,7 @@ function r = poly_op(G, c, signal)
 %
 %   Input parameters:
 %       G       : Graph structure
-%       c       : Polyfit(LS fitting) coefficients
+%       c       : Polyfit coefficients
 %       signal  : Signal to filter
 %   Output parameters
 %       r       : Result
