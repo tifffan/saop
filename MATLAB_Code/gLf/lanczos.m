@@ -1,40 +1,60 @@
-% LANCZOS Lanczos algorithm.
-%
-%    Given the discrete inner product whose nodes are contained 
-%    in the first column, and whose weights are contained in the 
-%    second column, of the nx2 array xw, the call ab=LANCZOS(n,xw)
-%    generates the first n recurrence coefficients ab of the 
-%    corresponding discrete orthogonal polynomials. The n alpha-
-%    coefficients are stored in the first column, the n beta-
-%    coefficients in the second column, of the nx2 array ab.
-%
-%    The script is adapted from the routine RKPW in
-%    W.B. Gragg and W.J. Harrod, ``The numerically stable 
-%    reconstruction of Jacobi matrices from spectral data'', 
-%    Numer. Math. 44 (1984), 317-335.
-%
-function ab=lanczos(N,xw)
-Ncap=size(xw,1);
-if(N<=0 | N>Ncap), error('N out of range'), end
-p0=xw(:,1); p1=zeros(Ncap,1); p1(1)=xw(1,2);
-for n=1:Ncap-1
-  pn=xw(n+1,2); gam=1; sig=0; t=0; xlam=xw(n+1,1);
-  for k=1:n+1
-    rho=p1(k)+pn; tmp=gam*rho; tsig=sig;
-    if rho<=0
-      gam=1; sig=0;
-    else
-      gam=p1(k)/rho;
-      sig=pn/rho;
-    end
-    tk=sig*(p0(k)-xlam)-gam*t;
-    p0(k)=p0(k)-(tk-t); t=tk;
-    if sig<=0
-      pn=tsig*p1(k);
-    else
-      pn=(t^2)/sig;
-    end
-    tsig=sig; p1(k)=tmp;
-  end
+% Taken from GSPBox
+
+function [V,H,orth] = lanczos(A,order,x)
+
+[N,M] = size(x);
+
+% normalization
+norm2vec = @(x) (sum(x.^2,1)).^0.5;
+q = x./repmat(norm2vec(x),N,1);
+
+% Initialization
+hiv =0:order:(order*M-1); % helping indice vector
+
+V = zeros(N,M*order);
+V(:,1+hiv) = q;
+
+
+H = zeros(order+1,order*M);
+
+r = A*q;
+H(1,1+hiv) = sum(q .* r, 1 );
+r = r - repmat(H(1,1+hiv),N,1).*q; 
+H(2,1+hiv) = norm2vec(r);
+
+if (nargout > 2)
+    orth = zeros(M,1);
+    orth(1) = norm(V'*V - M);
 end
-ab=[p0(1:N) p1(1:N)];
+
+for k = 2:order
+    
+    if (sum(abs(H(k,k-1+hiv))) <= eps)
+        H = H(1:k-1,sum_ind(1:k-1,hiv));
+        V = V(:,sum_ind(1:k-1,hiv));
+        if (nargout > 2)
+            orth = orth(1:k-1);
+        end
+        return;
+    end
+    
+    H(k-1,hiv+k) = H(k,hiv+k-1);
+    v = q;
+    q = r./repmat(H(k-1,k+hiv),N,1);
+    V(:,k+hiv) = q;
+  
+    r = A*q;
+    r = r - repmat(H(k-1,k+hiv),N,1).*v;
+    H(k,k+hiv) = sum(q .* r, 1 );
+    
+    r = r - repmat(H(k,k+hiv),N,1).*q;
+    % The next line has to be checked
+    r = r - V*(V'*r); % full reorthogonalization
+    H(k+1,k+hiv) = norm2vec(r);
+    
+    if (nargout > 2)
+        orth(k) = [orth, norm(V'*V - M)];
+    end
+end
+   
+H = H(1:order,1:order);

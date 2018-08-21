@@ -36,8 +36,10 @@ if iscell(filter)
 end
 
 c = zeros(m+1,1);
+weights=weights/sum(weights);
+
 for ii=1:m+1
-    c(ii) = sum(filter(absc).*weights.*Pi(:,ii))/sum(Pi(:,ii).^2.*weights);    
+    c(ii) = sum(filter(absc).*weights.*Pi(:,ii))/sum(Pi(:,ii).^2.*weights);  
 end
 
 end

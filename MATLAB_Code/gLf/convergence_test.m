@@ -15,7 +15,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='gnp';
+graph='net25';
 switch graph
     case 'gnp'
         N=500;
@@ -48,7 +48,7 @@ end
 G=gsp_estimate_lmax(G);
 lmax_est=G.lmax;
 param.num_pts=50; % for approximating spectral cdf 
-param.cdf_method='ldlt'; % can change to 'kpm' or 'lanczos' or 'ldlt'
+param.cdf_method='kpm'; % can change to 'kpm' or 'lanczos' or 'ldlt'
 param.num_vec=30;
 param.order=30;
 param.pts=linspace(.1,G.lmax,param.num_pts);
@@ -127,24 +127,27 @@ lanc_param.method='lanczos';
 lanc_param.order=K;           % set K = larger constant for testing
 
 % Warped
-%g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
-g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
+g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[0,lmax_est],'splitting','on'); 
+%g=chebfun(@(s) lmax_est*G.spectrum_cdf_approx(s),[-0.1,lmax_est+0.1],'splitting','on'); 
 gi=inv(g,'splitting','on'); % warping function is the inverse of the spectral CDF
+
 
 start_pts='cheb';
 switch start_pts
     case 'cheb'
         chebpts=cos((0:K)*pi/K)'; 
-        %chebpts_tx=(chebpts+1)*lmax_est/2;
-        chebpts_tx=(chebpts+1)*(lmax_est+0.1)/2;
+        chebpts_tx=(chebpts+1)*lmax_est/2;
+        %chebpts_tx=(chebpts+1)*(lmax_est+0.1)/2;
         chebpts_tx=sort(chebpts_tx,'ascend');
     case 'even'
-        %chebpts_tx=linspace(0,lmax_est,K+1);
-        chebpts_tx=linspace(-0.1,lmax_est+0.1,K+1);
+        chebpts_tx=linspace(0,lmax_est,K+1);
+        %chebpts_tx=linspace(-0.1,lmax_est+0.1,K+1);
     otherwise
         error('grid type not recognized');
 end
 chebpts_warped=gi(chebpts_tx);
+chebpts_warped(1)=0;
+
 
 % Note: since G.spectrum_cdf_approx returns 0 at 0, the first
 % interpolation point should always be 0 here. However, there may not be
@@ -152,18 +155,22 @@ chebpts_warped=gi(chebpts_tx);
 % option to force one point to be the estimate of the maximum eigenvalue
 % for now
 
-force_max=1;
+force_max=0;
 if force_max
     chebpts_warped(end)=lmax_est;
     chebpts_warped=sort(chebpts_warped,'ascend');
 end
 
-% Expand interval (0,lmax)
 %dom=domain(0,lmax_est);
-dom=domain(-0.1,lmax_est+0.1);
-p_warped=chebfun.interp1(chebpts_warped,f(chebpts_warped),dom);
-p_warped_c=p_warped.coeffs;
-p_warped_c(1)=p_warped_c(1)*2;
+%dom=domain(-0.1,lmax_est+0.1);
+%p_warped=chebfun.interp1(chebpts_warped,f(chebpts_warped),dom);
+%p_warped_c=p_warped.coeffs;
+%p_warped_c(1)=p_warped_c(1)*2;
+
+% Piecewise cubic hermit polynomial interpolation
+p_warped=pchip(chebpts_warped,f(chebpts_warped)); 
+
+
 
 % Include damping factors against Gibbs oscillations
 damping='none';
@@ -252,7 +259,8 @@ end
 sup_err_lanczos=max(abs(errors_lanczos));
 se_lanczos=sum(errors_lanczos.^2);
 
-y_cheb_warped=gsp_cheby_eval(G.e,p_warped_c,[0,lmax_est]);
+%y_cheb_warped=gsp_cheby_eval(G.e,p_warped_c,[0,lmax_est]);
+y_cheb_warped=ppval(p_warped,G.e);
 errors_cheb_warped=y-y_cheb_warped;
 if leaveout_end
     errors_cheb_warped=errors_cheb_warped(1:ceil(3*G.N/4));
@@ -275,8 +283,6 @@ se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2);
 % end
 % sup_err_ls=max(abs(errors_ls));
 % se_ls=sum(errors_ls.^2);
-
-Method = ["Chebyshev"; "Legengre"; "Reg. Lanczos"; "Warped Chebyshev"; "Spectrum-Adapted Ortho. Poly.";"Discrete LS";"Exact"];
 
 cheb_sup_err(K_ind)=sup_err_cheb;
 cheb_sq_err(K_ind)=se_cheb;
@@ -349,106 +355,110 @@ spec_sq_err(K_ind)=se_spec_adapted_ortho;
 
 
 % Test f(L)b on random signal b
-num_tests=5;
+% num_tests=5;
+% 
+% ntime_cheb=zeros(num_tests,1);
+% ntime_leg=zeros(num_tests,1);
+% ntime_lanczos=zeros(num_tests,1);
+% ntime_warped=zeros(num_tests,1);
+% ntime_spec=zeros(num_tests,1);
+% ntime_ls=zeros(num_tests,1);
+% ntime_exact=zeros(num_tests,1);
+% 
+% nmse_cheb=zeros(num_tests,1);
+% nmse_leg=zeros(num_tests,1);
+% nmse_lanczos=zeros(num_tests,1);
+% nmse_warped=zeros(num_tests,1);
+% nmse_spec=zeros(num_tests,1);
+% nmse_ls=zeros(num_tests,1);
+% 
+% G2=G;
+% G2.lmax=lmax_est;
+% G2=rmfield(G2,'U');
+% G2=rmfield(G2,'e');
+% lanc_param.method='lanczos';
+% lanc_param.order=K;
 
-ntime_cheb=zeros(num_tests,1);
-ntime_leg=zeros(num_tests,1);
-ntime_lanczos=zeros(num_tests,1);
-ntime_warped=zeros(num_tests,1);
-ntime_spec=zeros(num_tests,1);
-ntime_ls=zeros(num_tests,1);
-ntime_exact=zeros(num_tests,1);
 
-nmse_cheb=zeros(num_tests,1);
-nmse_leg=zeros(num_tests,1);
-nmse_lanczos=zeros(num_tests,1);
-nmse_warped=zeros(num_tests,1);
-nmse_spec=zeros(num_tests,1);
-nmse_ls=zeros(num_tests,1);
-
-G2=G;
-G2.lmax=lmax_est;
-G2=rmfield(G2,'U');
-G2=rmfield(G2,'e');
-lanc_param.method='lanczos';
-lanc_param.order=K;
-
-
-for i=1:num_tests
-    b=rand(G.N,1);
-    bhat=G.U'*b;
-    tic
-    gLf_exact=G.U*(f(G.e).*bhat);
-    ntime_exact(i)=toc;
-    % add time to compute exact spectrum for every new vector b
-    % can change to add this time only once for all b's
-    ntime_exact(i)=ntime_exact(i)+time_exact_spec;
-    tic
-    gLf_ls=G.U*(polyval(lsc,G.e).*bhat);    
-    ntime_ls(i)=toc;
-    % addd time to compute exact spectrum for every new vector b
-    % can change to add this time only once for all b's
-    ntime_ls(i)=ntime_ls(i)+time_exact_spec;
-    tic
-    gLf_cheb=gsp_cheby_op(G2,c,b); 
-    ntime_cheb(i)=toc;
-    tic
-    gLf_leg=gsp_cheby_op(G2,plegc,b); 
-    ntime_leg(i)=toc;
-    tic
-    gLf_lanczos=gsp_filter(G2,f,b,lanc_param);
-    ntime_lanczos(i)=toc;
-    tic
-    gLf_warped=gsp_cheby_op(G2,p_warped_c,b); 
-    ntime_warped(i)=toc;
-    tic
-    gLf_spec=three_term_recurr_op(G2,ab,c_spec_adapted_ortho,b);
-    ntime_spec(i)=toc;
-
-    nmse_cheb(i)=sum((gLf_cheb-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_leg(i)=sum((gLf_leg-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_lanczos(i)=sum((gLf_lanczos-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_warped(i)=sum((gLf_warped-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_spec(i)=sum((gLf_spec-gLf_exact).^2)/sum(gLf_exact.^2);
-    nmse_ls(i)=sum((gLf_ls-gLf_exact).^2)/sum(gLf_exact.^2);
-    
+% for i=1:num_tests
+%     b=rand(G.N,1);
+%     bhat=G.U'*b;
+%     tic
+%     gLf_exact=G.U*(f(G.e).*bhat);
+%     ntime_exact(i)=toc;
+%     % add time to compute exact spectrum for every new vector b
+%     % can change to add this time only once for all b's
+%     ntime_exact(i)=ntime_exact(i)+time_exact_spec;
+%     tic
+%     gLf_ls=G.U*(polyval(lsc,G.e).*bhat);    
+%     ntime_ls(i)=toc;
+%     % addd time to compute exact spectrum for every new vector b
+%     % can change to add this time only once for all b's
+%     ntime_ls(i)=ntime_ls(i)+time_exact_spec;
+%     tic
+%     gLf_cheb=gsp_cheby_op(G2,c,b); 
+%     ntime_cheb(i)=toc;
+%     tic
+%     gLf_leg=gsp_cheby_op(G2,plegc,b); 
+%     ntime_leg(i)=toc;
+%     tic
+%     gLf_lanczos=gsp_filter(G2,f,b,lanc_param);
+%     ntime_lanczos(i)=toc;
+%     tic
+%     gLf_warped=gsp_cheby_op(G2,p_warped_c,b); 
+%     ntime_warped(i)=toc;
+%     tic
+%     gLf_spec=three_term_recurr_op(G2,ab,c_spec_adapted_ortho,b);
+%     ntime_spec(i)=toc;
+% 
+%     nmse_cheb(i)=sum((gLf_cheb-gLf_exact).^2)/sum(gLf_exact.^2);
+%     nmse_leg(i)=sum((gLf_leg-gLf_exact).^2)/sum(gLf_exact.^2);
+%     nmse_lanczos(i)=sum((gLf_lanczos-gLf_exact).^2)/sum(gLf_exact.^2);
+%     nmse_warped(i)=sum((gLf_warped-gLf_exact).^2)/sum(gLf_exact.^2);
+%     nmse_spec(i)=sum((gLf_spec-gLf_exact).^2)/sum(gLf_exact.^2);
+%     nmse_ls(i)=sum((gLf_ls-gLf_exact).^2)/sum(gLf_exact.^2);
+%     
+% end
+% 
+% avg_ntime_cheb=mean(ntime_cheb);
+% avg_ntime_leg=mean(ntime_leg);
+% avg_ntime_lanczos=mean(ntime_lanczos);
+% avg_ntime_warped=mean(ntime_warped);
+% avg_ntime_spec=mean(ntime_spec);
+% % avg_ntime_ls=mean(ntime_ls);
+% % avg_ntime_exact=mean(ntime_exact);
+% 
+% avg_nmse_cheb=mean(nmse_cheb);
+% avg_nmse_leg=mean(nmse_leg);
+% avg_nmse_lanczos=mean(nmse_lanczos);
+% avg_nmse_warped=mean(nmse_warped);
+% avg_nmse_spec=mean(nmse_spec);
+% % avg_nmse_ls=mean(nmse_ls);
+% 
+% cheb_time(K_ind)=avg_ntime_cheb;
+% leg_time(K_ind)=avg_ntime_leg;
+% lanc_time(K_ind)=avg_ntime_lanczos;
+% warp_time(K_ind)=avg_ntime_warped;
+% spec_time(K_ind)=avg_ntime_spec;
+% 
+% cheb_nmse(K_ind)=avg_nmse_cheb;
+% leg_nmse(K_ind)=avg_nmse_leg;
+% lanc_nmse(K_ind)=avg_nmse_lanczos;
+% warp_nmse(K_ind)=avg_nmse_warped;
+% spec_nmse(K_ind)=avg_nmse_spec;
+% end
 end
-
-avg_ntime_cheb=mean(ntime_cheb);
-avg_ntime_leg=mean(ntime_leg);
-avg_ntime_lanczos=mean(ntime_lanczos);
-avg_ntime_warped=mean(ntime_warped);
-avg_ntime_spec=mean(ntime_spec);
-% avg_ntime_ls=mean(ntime_ls);
-% avg_ntime_exact=mean(ntime_exact);
-
-avg_nmse_cheb=mean(nmse_cheb);
-avg_nmse_leg=mean(nmse_leg);
-avg_nmse_lanczos=mean(nmse_lanczos);
-avg_nmse_warped=mean(nmse_warped);
-avg_nmse_spec=mean(nmse_spec);
-% avg_nmse_ls=mean(nmse_ls);
-
-cheb_time(K_ind)=avg_ntime_cheb;
-leg_time(K_ind)=avg_ntime_leg;
-lanc_time(K_ind)=avg_ntime_lanczos;
-warp_time(K_ind)=avg_ntime_warped;
-spec_time(K_ind)=avg_ntime_spec;
-
-cheb_nmse(K_ind)=avg_nmse_cheb;
-leg_nmse(K_ind)=avg_nmse_leg;
-lanc_nmse(K_ind)=avg_nmse_lanczos;
-warp_nmse(K_ind)=avg_nmse_warped;
-spec_nmse(K_ind)=avg_nmse_spec;
-end
-
 polynomial_order=[1:n_its]'*10;
 
-cheb_table=table(polynomial_order,cheb_sup_err,cheb_sq_err,cheb_time,cheb_nmse)
-leg_table=table(polynomial_order,leg_sup_err,leg_sq_err,leg_time,leg_nmse)
-lanc_table=table(polynomial_order,lanc_sup_err,lanc_sq_err,lanc_time,lanc_nmse)
-warp_table=table(polynomial_order,warp_sup_err,warp_sq_err,warp_time,warp_nmse)
-spec_table=table(polynomial_order,spec_sup_err,spec_sq_err,spec_time,spec_nmse)
+% cheb_table=table(polynomial_order,cheb_sup_err,cheb_sq_err,cheb_time,cheb_nmse)
+% leg_table=table(polynomial_order,leg_sup_err,leg_sq_err,leg_time,leg_nmse)
+% lanc_table=table(polynomial_order,lanc_sup_err,lanc_sq_err,lanc_time,lanc_nmse)
+% warp_table=table(polynomial_order,warp_sup_err,warp_sq_err,warp_time,warp_nmse)
+% spec_table=table(polynomial_order,spec_sup_err,spec_sq_err,spec_time,spec_nmse)
 parameters=cell2table({graph, param.cdf_method, filter,damping,leaveout_end},'VariableNames',{'Graph' 'CDFMethod' 'Filter' 'Damping' 'LeaveOutEnd'})
 
-
+cheb_table=table(polynomial_order,cheb_sup_err,cheb_sq_err)
+leg_table=table(polynomial_order,leg_sup_err,leg_sq_err)
+lanc_table=table(polynomial_order,lanc_sup_err,lanc_sq_err)
+warp_table=table(polynomial_order,warp_sup_err,warp_sq_err)
+spec_table=table(polynomial_order,spec_sup_err,spec_sq_err)

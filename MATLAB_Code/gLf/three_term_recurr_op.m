@@ -87,7 +87,8 @@ else
     bsingle = 0;
 end
 
-arange = [0, G.lmax];
+arange = [G.lmin, G.lmax];
+%arange = [0, G.lmax]
 
 a1 = (arange(2) - arange(1))/2;
 a2 = (arange(2) + arange(1))/2;

@@ -8,6 +8,10 @@ if ~isfield(G,'lmax')
     G=gsp_estimate_lmax(G);
 end
 
+if ~isfield(G,'lmin')
+    G.lmin=0;  % change to estimation of lmin
+end
+
 if ~isfield(param, 'order')
     param.order = 30;
 end
@@ -21,7 +25,7 @@ if ~isfield(param, 'num_pts')
 end
 
 if ~isfield(param, 'pts')
-    param.pts=linspace(0,G.lmax,param.num_pts);
+    param.pts=linspace(G.lmin,G.lmax,param.num_pts);
 end
 
 if ~isfield(param,'cdf_method')
@@ -41,7 +45,7 @@ switch cdf_method
     %TODO: force last one to be N?
 
     for j=2:param.num_pts-1
-        [~, jch] = gsp_jackson_cheby_coeff(0,param.pts(j),[0,G.lmax], param.order);
+        [~, jch] = gsp_jackson_cheby_coeff(G.lmin,param.pts(j),[G.lmin,G.lmax], param.order);
         r=gsp_cheby_opX(G,jch);
         vals(j)=gsp_hutch(G,r);
     end
@@ -56,6 +60,10 @@ switch cdf_method
         end
     end
     G.spectrum_cdf_approx = @(s) gsp_mono_cubic_warp_fn(param.pts',vals,s);
+    G.spectrum_pdf_approx = @(s) gsp_mono_cubic_warp_fn_deriv(param.pts',vals,s);
+    G.cdf_nodes=param.pts';
+    G.cdf_nodes_y=vals;
+    G.spectrum_inv_cdf_approx = @(y) inverse_mono_cubic2(param.pts',vals,y);
     
     case 'ldlt'
         if ~isfield(param, 'use_speedup')
@@ -140,8 +148,14 @@ switch cdf_method
             end
         end
         interp_y=counts/(G.N-1);
-
-        G.spectrum_cdf_approx = @(s) gsp_mono_cubic_warp_fn(interp_x,interp_y,s);
+        for i=1:param.num_pts-1
+            if interp_y(i+1)<interp_y(i)
+                interp_y(i+1)=interp_y(i);
+            end
+        end
+        %G.spectrum_cdf_approx = @(s) gsp_mono_cubic_warp_fn(interp_x,interp_y,s);
+        G.spectrum_cdf_approx = @(s) pchip(interp_x,interp_y,s);
+        G.spectrum_pdf_approx = @(s) gsp_mono_cubic_warp_fn_deriv(interp_x,interp_y,s);
 
 
     case 'lanczos' % cdf_method = 'lanczos', adapted from LanczosCDOS; see also Appendix C of "Approximating Spectral Densities of Large Matrices" by Lin, Saad, and Yang
