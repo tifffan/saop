@@ -1,0 +1,46 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: saop.aux
+The style file: IEEEbib.bst
+Database file #1: saop_refs.bib
+You've used 54 entries,
+            1838 wiz_defined-function locations,
+            768 strings with 11465 characters,
+and the built_in function-call counts, 13482 in all, are:
+= -- 1260
+> -- 530
+< -- 11
++ -- 197
+- -- 143
+* -- 1099
+:= -- 2065
+add.period$ -- 59
+call.type$ -- 54
+change.case$ -- 46
+chr.to.int$ -- 0
+cite$ -- 54
+duplicate$ -- 578
+empty$ -- 1324
+format.name$ -- 143
+if$ -- 3063
+int.to.chr$ -- 0
+int.to.str$ -- 54
+missing$ -- 61
+newline$ -- 274
+num.names$ -- 58
+pop$ -- 149
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 238
+stack$ -- 0
+substring$ -- 1075
+swap$ -- 153
+text.length$ -- 11
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 133
+width$ -- 56
+write$ -- 593
