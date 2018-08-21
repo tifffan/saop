@@ -69,6 +69,7 @@ switch param.absc_method
 end
 
 
+
 switch param.weights_method
     case 'count'
         weights=zeros(1,grid_order);

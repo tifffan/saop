@@ -5,7 +5,7 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-graph='cage9';
+graph='gnp';
 switch graph
     case 'gnp'
         N=500;
@@ -270,8 +270,6 @@ c=gsp_cheby_coeff(G,f,K,1000);
 lanc_param.method='lanczos';
 lanc_param.order=K;
 x=sum(G2.U')';
-[V,H]=lanczos(G.L,K+1,x);
-e=eig(H);
 
 % Starting points for interpolation
 pts_interp=cos((0:K)*pi/K)'; 

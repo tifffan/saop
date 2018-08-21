@@ -86,12 +86,12 @@ if isa(signal,'single')
 else
     bsingle = 0;
 end
-
-arange = [G.lmin, G.lmax];
+% 
+% arange = [G.lmin, G.lmax];
 %arange = [0, G.lmax]
 
-a1 = (arange(2) - arange(1))/2;
-a2 = (arange(2) + arange(1))/2;
+% a1 = (arange(2) - arange(1))/2;
+% a2 = (arange(2) + arange(1))/2;
 
 
 %Twf_new = T_j(L) f
@@ -99,7 +99,7 @@ a2 = (arange(2) + arange(1))/2;
 %TWf_old T_{j-2}(L) f
 
 Twf_old=signal;                     % j = 0;
-Twf_cur=G.L*signal-ab(1,1)*signal;  % j = 1;
+Twf_cur=(G.L*signal-ab(1,1)*signal)/sqrt(ab(2,2));  % j = 1;
 
 Nv = size(signal,2);          % Number of signals being filtered
 r = zeros(G.N*Nscales,Nv);
@@ -109,7 +109,7 @@ for ii=1:Nscales
 end
 
 for k=2:maxM
-    Twf_new = G.L*Twf_cur-ab(k,1)*Twf_cur - ab(k,2)*Twf_old; % this is the three-term recurrence relation in (1.3.2) in Gautschi. Should we be using (1.3.13) instead?
+    Twf_new = (G.L*Twf_cur-ab(k,1)*Twf_cur - sqrt(ab(k,2))*Twf_old)/sqrt(ab(k+1,2)); 
     for ii=1:Nscales
         if 1+k <= M
             r((1:G.N)+G.N * (ii-1),:) =...
