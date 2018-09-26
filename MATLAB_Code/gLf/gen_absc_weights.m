@@ -1,4 +1,16 @@
 function [absc,weights]=gen_absc_weights(G,poly_order,param)
+%GEN_ABSC_WEIGHTS: Generates abscissae and weights for a discrete measure
+%which approximates the spectral density of a graph
+%
+%   Usage: [absc,weights]=gen_absc_weights(G,poly_order,param);
+%
+%   Input parameters:
+%       G           : Graph structure
+%       poly_order  : Maximum order Chebyshev coefficient to compute in
+%                     the approximation for f
+%   Output parameters:
+%       absc        : Abscissae of support points of the discrete measure
+%       weights     : Weights of support points of the discrete measure
 
 if ~isfield(G,'lmax')
     G=gsp_estimate_lmax(G);

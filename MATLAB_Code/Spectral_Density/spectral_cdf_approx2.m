@@ -1,4 +1,16 @@
 function [ G, vals ] = spectral_cdf_approx2( G , param)
+%SPECTRAL_CDF_APPROX2: Approximates the spectral density of a graph (the 
+%cdf and pdf of the eigenvalues of the graph Laplacian matrix)
+%
+% Usage: G = spectral_cdf_approx2( G , param);
+%
+% Input: 
+%     G: a matlab graph structure (see GSP toolbox)
+%
+% Output: 
+%     Two things stored in G: 
+%     spectral_cdf_approx: a function that approximates spectral cdf
+%     spectral_pdf_approx: a function that approximates spectral pdf
 
 if nargin<2
    param = struct;

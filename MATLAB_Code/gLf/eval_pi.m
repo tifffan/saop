@@ -1,4 +1,20 @@
 function [ Pi ] = eval_pi(ab,absc)
+%EVAL_PI: Evaluates the first K orthogonal polynomials {\pi_k(x)} for a 
+%discrete set of N points via the three term recursion
+%
+%   Usage: Pi = eval_pi(ab,absc);
+%
+%   Input parameters:
+%       ab      : Recurrence coefficients alpha (first column) and beta
+%                 (second column)
+%       absc    : Abscissae of a discrete set of N points {x_i}, the support
+%                 points of a discrete measure with respect to which the 
+%                 polynomials {\pi_k} are orthogonal
+%
+%   Output parameters:
+%       Pi      : values of the orthogonal polynomials at the abscissae,
+%                 (i-1)th polynomial in ith column of Pi
+% 
 
 Ncap=length(absc);
 N=size(ab,1);

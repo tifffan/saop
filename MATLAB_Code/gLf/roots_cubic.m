@@ -1,4 +1,12 @@
 function r=roots_cubic(coef)
+%ROOTS_CUBIC: Solves the cubic equation ax^3+bx^2+cx+d=0 for x
+%
+%   Usage: r = three_term_recurr_op(G, recurr_coeffs, c, signal);
+%
+%   Input parameters:
+%       coef    : Coefficients a, b, c, d
+%   Output parameters:
+%       r       : Three cubic roots
 
 a=coef(1);
 b=coef(2);

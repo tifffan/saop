@@ -1,6 +1,16 @@
 function [ derivative_values ] = gsp_mono_cubic_warp_fn_deriv(x,y,x0)
-
-cut=1e-4;
+%GSP_MONO_CUBIC_WARP_FUN_DERIV: Interpolates a monotonic cubic function 
+%through points (x,y) and computes the derivative at points x0
+%
+% Usage: derivative_values = gsp_mono_cubic_warp_fn_deriv(x,y,x0);
+%
+% Input parameters:
+%     x         :a vector of x coordinates of the known points
+%     y         :a vector of y coordinates of the known points
+%     x0        :a vector of x coordinates of the points to be interpolated
+%
+% Output parameters:
+%     derivative_values    :a vector of derivatives at points x0
 
 % Make sure data is sorted and monotonic
 %
@@ -27,6 +37,11 @@ cut=1e-4;
 %     and D. K. Hammond. GSPBOX: A toolbox for signal processing on graphs.
 %     ArXiv e-prints, Aug. 2014.
 % http://arxiv.org/abs/1408.5781
+
+cut=1e-4;
+
+
+
 [x,x_ind]=sort(x,'ascend');
 y=y(x_ind);
 if ( isequal(sort(y,'ascend'),y)==0 && isequal(sort(y,'descend'),y)==0 )

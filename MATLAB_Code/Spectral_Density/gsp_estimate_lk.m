@@ -1,7 +1,7 @@
 function [lambda_k, cum_coh] = gsp_estimate_lk(G, k, param)
-% Function that estimate the kth smallest eigenvalue of a graph Laplacian
+%GSP_ESTIMATE_LK: Estimates the kth smallest eigenvalue of a graph Laplacian
 %
-%   [lambda_k, cum_coh] = gsp_estimate_lk(G, k, param)
+% Usage: [lambda_k, cum_coh] = gsp_estimate_lk(G, k, param)
 %
 % Ouputs:
 %   - lambda_k: the estimated kth smallest eigenvalue of the graph

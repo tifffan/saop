@@ -1,6 +1,7 @@
 function r = poly_op(G, c, signal)
-%POLY_OP Evaluate filtered signal with polyfit coefficients
-%   Usage:  r = poly_op(G, c, signal)
+%POLY_OP: Evaluates filtered signal with polyfit coefficients
+%
+%   Usage:  r = poly_op(G, c, signal);
 %
 %   Input parameters:
 %       G       : Graph structure

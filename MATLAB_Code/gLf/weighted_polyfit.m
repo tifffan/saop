@@ -1,4 +1,19 @@
 function [p,S,mu] = weighted_polyfit(x,y,w,n)
+%WEIGHTED_POLYFIT: Fits a degree n polynomial with least weighted least 
+%squares error to data, adapted from the polyfit function built in Matlab
+%
+%   Usage: [p,S,mu] = weighted_polyfit(x,y,w,n);
+%
+%   Input parameters:
+%       x      : x coordinates of the data
+%       y      : y coordinates of the data
+%       w      : Weights of the points (x,y)
+%       n      : Order of polynomial fitting
+%   Output parameters:
+%       p      : (n+1) polynomial coefficients in descending powers
+%       S      : a structure that can be used as an input to polyval to obtain error estimates
+%       mu     : a two-element vector with mean and standard deviation of x
+
 
 if ~isequal(size(x),size(y)) 
     error('X and Y vectors must be the same size.') 

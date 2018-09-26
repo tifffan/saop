@@ -1,15 +1,16 @@
 function c = matrix_adapted_poly_coeff(G, filter, absc, weights, Pi, m)
-%MATRIX_ADAPTED_POLY_COEFF : Compute expansion coefficients for a filterbank
+%MATRIX_ADAPTED_POLY_COEFF : Computes expansion coefficients for a filterbank
+%
 %   Usage: c = matrix_adapted_poly_coeff(G, filter, absc, weights,Pi,m);
 %
 %   Input parameters:
-%       G       : graph structure or range of application
-%       filter  : filter or cell array of filters
-%       m       : maximum order Chebyshev coefficient to compute
-%       Pi      : values of the orthogonal polynomials at the abscissae
+%       G       : Graph structure or range of application
+%       filter  : Filter or cell array of filters
+%       m       : Maximum order Chebyshev coefficient to compute
+%       Pi      : Values of the orthogonal polynomials at the abscissae
 %                 (i-1)th polynomial in ith column of Pi
 %   Output parameters
-%       c   : matrix of expansion coefficients
+%       c       : Matrix of expansion coefficients
 % 
 %   This function compute the expansion coefficients for all of the filters
 %   contained in the cell array filter. The coefficients are returned in a

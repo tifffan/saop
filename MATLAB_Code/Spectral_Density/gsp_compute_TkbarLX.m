@@ -1,9 +1,16 @@
 function [G] = gsp_compute_TkbarLX(G, param)
-% Computes \bar{T}_k(L)X for k=0,1,...,K (order)
-% Output: Two things stored in G: 
-% 1. X (random N x num_vec matrix)
-% 2. TkbarLX: N x (K+1)*num_vec matrix [\bar{T}_0(L)X | \bar{T}_1(L)X | ... |
-% \bar{T}_K(L)X ]
+%GSP_COMPUTE_TKBARLX: Computes \bar{T}_k(L)X for k=0,1,...,K (order)
+%
+% Usage: G = gsp_compute_TkbarLX(G, param);
+%
+% Input: 
+%   - G: a matlab graph structure (see GSP toolbox)
+%
+% Output: 
+%   - Two things stored in G: 
+%     1. X (random N x num_vec matrix)
+%     2. TkbarLX: N x (K+1)*num_vec matrix [\bar{T}_0(L)X | \bar{T}_1(L)X | ... |
+%     \bar{T}_K(L)X ]
 
 if nargin < 2
     param = struct;

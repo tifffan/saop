@@ -1,4 +1,16 @@
 function [x0_values]=inverse_mono_cubic2(x,y,y0)
+%INVERSE_MONO_CUBIC2: Interpolates a monotonic cubic function f
+%through points (x,y) and computes the x0 values given y0=f(x0)
+%
+% Usage: x0 = inverse_mono_cubic2(x,y,y0);
+%
+% Input parameters:
+%     x         :a vector of x coordinates of the known points
+%     y         :a vector of y coordinates of the known points
+%     y0        :a vector of y coordinates of the points to be interpolated
+%
+% Output parameters:
+%     x0        :a vector of x coordinates such that y0=f(x0)
 
 cut=1e-4;
 

@@ -1,5 +1,6 @@
 function r = three_term_eval(G,x,ab,c)
 %GSP_CHEBY_EVAL Evaluate chebyshev polynomial
+%
 %   Usage:  r = gsp_cheby_eval(x,c,arange)
 %
 %   Input parameters:
@@ -9,7 +10,7 @@ function r = three_term_eval(G,x,ab,c)
 %   Output parameters
 %       r       : Result
 %
-%   In this function, *arrange* has to be [0, lmax ]!
+%   In this function, *arrange* has to be [0, lmax]!
 
 % Author: David K Hammond, Nathanael Perraudin
 % Testing: test_dual

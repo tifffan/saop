@@ -1,6 +1,7 @@
 function r = three_term_recurr_op(G, ab, c, signal,param)
 %THREE_TERM_RECURR_OP : Orthogonal polynomial of graph Laplacian applied to vector
-%   Usage: r = three_term_recurr_op(G, recurr_coeffs,c, signal)
+%
+%   Usage: r = three_term_recurr_op(G, recurr_coeffs, c, signal)
 %
 %   Input parameters:
 %       G       : Graph structure
@@ -8,7 +9,7 @@ function r = three_term_recurr_op(G, ab, c, signal,param)
 %                 (second column)
 %       c       : Expansion coefficients in the chosen polynomials
 %       signal  : Signal(s) to filter (one per column)
-%   Output parameters
+%   Output parameters:
 %       r       : Result of the filtering
 % 
 %   Compute (possibly multiple) polynomials of graph laplacian applied to input.

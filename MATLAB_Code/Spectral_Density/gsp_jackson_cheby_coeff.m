@@ -1,19 +1,18 @@
 function  [CH, JCH] = gsp_jackson_cheby_coeff(a, b, lambda_range, m)
-% Compute the coefficients of the polynomial approximation of an ideal
-% bandpass filter.
+%GSP_JACKSON_CHEBY_COEFF: Computes the coefficients of the polynomial 
+%approximation of an ideal bandpass filter.
 %
-%   [CH, JCH] = jackson_cheby_poly_coefficients(a, b, lambda_range, m)
+% Usage:[CH, JCH] = jackson_cheby_poly_coefficients(a, b, lambda_range, m);
 %
-% Ouputs:
-%   - CH contains the list of chebyshev coefficients
-%   - JCH contains the list of Jackson chebyshev coefficients
+% Input parameters:
+%     a and b        : Start and end of the bandpass interval
+%     lambda_range   : Typically [0 G.lmax] in graph signal processing;
+%                      the full interval on which the filter is defined
+%     m              : Order of the polynomial approximation
 %
-% Inputs:
-%   - a and b indicates the start and end of the bandpass interval.
-%   - lambda_range is typically [0 G.lmax] in graph signal processing and
-%   indicates the full interval on which the filter is defined.
-%   - m is the order of the polynomial approximation.
-%
+% Ouput parameters:
+%     CH             : List of chebyshev coefficients
+%     JCH            : List of Jackson chebyshev coefficients
 %
 % This code is implemented using the methods described in:
 % [1] E. D. Napoli, E. Polizzo, and Y. Saad, "Efficient estimation of 
