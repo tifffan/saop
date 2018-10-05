@@ -93,7 +93,7 @@ xlim([G.lmin,G.lmax]);
 K=10;
 
 % Chebyshev
-c=gsp_cheby_coeff(G,f,K,1000);
+c=gsp_cheby_coeff([G.lmin,G.lmax],f,K,1000);
 
 % Lanczos
 lanc_param.method='lanczos';
@@ -110,7 +110,7 @@ pts_warped_interp(1)=G.lmin;
 % Chebyshev interpolation on warped points
 [p_warped,s_warped,mu_warped]=polyfit(pts_warped_interp,f(pts_warped_interp),K);
 p_warped_fun=@(x) polyval(p_warped,x,s_warped,mu_warped); 
-p_warped_c=gsp_cheby_coeff(G,p_warped_fun,K,1000);
+p_warped_c=gsp_cheby_coeff([G.lmin,G.lmax],p_warped_fun,K,1000);
 
 % Matrix/Spectrum adapted orthogonal polynomials
 mop_param=struct;
@@ -264,7 +264,7 @@ for K_ind=1:n_its
 K=poly_orders(K_ind);
 
 % Chebyshev
-c=gsp_cheby_coeff(G,f,K,1000);
+c=gsp_cheby_coeff([G.lmin,G.lmax],f,K,1000);
 
 % Lanczos
 lanc_param.method='lanczos';
@@ -281,7 +281,7 @@ pts_warped_interp(1)=G.lmin;
 % Chebyshev interpolation on warped points
 [p_warped,s_warped,mu_warped]=polyfit(pts_warped_interp,f(pts_warped_interp),K);
 p_warped_fun=@(x) polyval(p_warped,x,s_warped,mu_warped); 
-p_warped_c=gsp_cheby_coeff(G,p_warped_fun,K,1000);
+p_warped_c=gsp_cheby_coeff([G.lmin,G.lmax],p_warped_fun,K,1000);
 
 
 

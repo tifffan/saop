@@ -6,7 +6,8 @@ randn('seed', 18); rand('seed', 18)
 
 % fig_motivation1: approximations for f=exp(-\lambda)
 G=gsp_erdos_renyi(500,.2);
-G2=G; G2=gsp_compute_fourier_basis(G2);
+G2=G; param.force_svd=1;
+G2=gsp_compute_fourier_basis(G2,param);
 
 G=gsp_estimate_lmax(G);
 G.lmin=G2.e(1)*(G2.e(1));

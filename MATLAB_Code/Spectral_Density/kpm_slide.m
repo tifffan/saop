@@ -13,7 +13,8 @@ num_vec=30;
 param.num_pts=20;
 [cdf_approx,pts,vals]=spectral_cdf_approx(G,num_vec,order,param.num_pts);
 
-G=gsp_compute_fourier_basis(G);
+param.force_svd=1;
+G=gsp_compute_fourier_basis(G,param);
 
 h=@(x) x <= pts(10);
 figure;
