@@ -41,9 +41,9 @@ function r = gsp_cheby_op(G, c, signal,param)
 %   See also: gsp_cheby_coeff gsp_filter_analysis
 %
 
-% Author: David K Hammond, Nathanael Perraudin
+% Author: David K Hammond, Nathanael Perraudin, Li Fan, David Shuman
 % Testing: test_filter
-% Date: 19 March 2014
+% Date: 5 October 2018
 
 if nargin < 4
     param = struct;
@@ -63,35 +63,14 @@ assert(all(M>=2));
 maxM=max(M);
 
 
+if ~isfield(G,'lmin')
+    G.lmin=0;
+end
 
-if ~isfield(G,'lmax');
+if ~isfield(G,'lmax')
     G = gsp_estimate_lmax(G);
     if param.verbose
     warning(['GSP_CHEBY_OP: The variable lmax is not ',...
-%
-%   Url: https://epfl-lts2.github.io/gspbox-html/doc/utils/gsp_cheby_op.html
-
-% Copyright (C) 2013-2016 Nathanael Perraudin, Johan Paratte, David I Shuman.
-% This file is part of GSPbox version 0.7.5
-%
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-% If you use this toolbox please kindly cite
-%     N. Perraudin, J. Paratte, D. Shuman, V. Kalofolias, P. Vandergheynst,
-%     and D. K. Hammond. GSPBOX: A toolbox for signal processing on graphs.
-%     ArXiv e-prints, Aug. 2014.
-% http://arxiv.org/abs/1408.5781
         'available. The function will compute it for you. ',...
         'However, if you apply many time this function, you ',...
         'should precompute it using the function: ',...
@@ -107,7 +86,6 @@ else
 end
 
 arange = [G.lmin, G.lmax];
-%arange = [0, G.lmax];
 
 a1 = (arange(2) - arange(1))/2;
 a2 = (arange(2) + arange(1))/2;

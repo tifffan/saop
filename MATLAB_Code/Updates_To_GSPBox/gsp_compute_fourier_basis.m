@@ -58,7 +58,7 @@ function [G] = gsp_compute_fourier_basis(G,param)
 %     ArXiv e-prints, Aug. 2014.
 % http://arxiv.org/abs/1408.5781
 
-% Author : David I Shuman, Nathanael Perraudin
+% Author : David I Shuman, Nathanael Perraudin, Li Fan
 % Testing: test_operators
 
 if nargin < 2
@@ -131,7 +131,7 @@ G.mu = max(abs(G.U(:)));
 end
 
 
-function [U,E] = gsp_full_eigen(L, param) % added param into input, 10/03/2018
+function [U,E] = gsp_full_eigen(L, param) 
 %GSP_FULL_EIGEN Compute and order the eigen decomposition of L
 
     % Compute and all eigenvalues and eigenvectors
