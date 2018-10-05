@@ -20,7 +20,7 @@ gi=@(s) G.spectrum_inv_cdf_approx((s-G.lmin)/(G.lmax-G.lmin));
 
 tau=1; f=@(x) exp(-tau*x);
 K=5;
-c=gsp_cheby_coeff(G,f,K,1000);
+c=gsp_cheby_coeff([G.lmin,G.lmax],f,K,1000);
 y=f(G2.e);
 [lsc,s_ls,mu_ls]=polyfit(G2.e,y,K);
 
