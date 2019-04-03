@@ -303,8 +303,7 @@ switch btype
         B=(1/sqrt(G.N))*ones(G.N,T);
         X=G2.U*B;   %TODO: want components of different time frequency
      case 'randn_spectral'
-         num_tests=50;
-         B=(1/sqrt(G.N))*randn(G.N,num_tests);
+         B=(1/sqrt(G.N))*randn(G.N,T);
          X=G2.U*B;
 %     case 'rand_spectral'
 %         num_tests=50;
