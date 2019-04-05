@@ -3,8 +3,8 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-N=500;
-T=10;
+N=5000;
+T=1000;
 
 graph='sensor';
 switch graph
@@ -12,12 +12,14 @@ switch graph
         p=.2;
         G=gsp_erdos_renyi(N,p);
     case 'sensor'
+        N=500;
         G=gsp_david_sensor_network(N);
     case 'grassi'
         G=gsp_sensor(N);
         G = gsp_create_laplacian(G, 'normalized');
     case 'cage9'
-        load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/cage9.mat');
+        %load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/cage9.mat');
+        load('/Users/lfan/Documents/MATLAB/git/spectral-warping/MATLAB_Code/Data/CAGE9.mat');
         %load('/Users/davidshuman/Dropbox/Current Research Work/SAOP/.../cage9.mat');   % fix path
         G=struct;
         G.L=Problem.A;
@@ -25,7 +27,8 @@ switch graph
         G.N=size(G.L,1);
         N=3534;
     case 'saylr4sc'
-        load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/saylr4.mat');
+        %load('/Users/lifan/Desktop/Research/git/spectral-warping/MATLAB_Code/Data/saylr4.mat');
+        load('/Users/lfan/Documents/MATLAB/git/spectral-warping/MATLAB_Code/Data/saylr4.mat');
         %load('/Users/davidshuman/Dropbox/Current ResearchWork/SAOP/.../saylr4.mat');  % fix path
         A=Problem.A;
         A = A - diag(diag(A)); 
@@ -42,10 +45,19 @@ G.lmin = 0;
 G2=G;
 tic
 G2=gsp_compute_fourier_basis(G2);
+
+svd_time=toc;
+
+disp('graph spectral decomposition computed');
+datetime
+
 G2 = gsp_jtv_graph(G2, T);
 G2.lmin=min(G2.e);
 omega = fftshift(G.jtv.omega);
 [ X, Y ] = meshgrid( omega, G2.e );
+
+disp('time-vertex graph built');
+datetime
 time_exact=toc;
 
 % Graph Spectral CDF and inverse CDF
@@ -75,7 +87,7 @@ time_weightedls=time_weightedls+toc;
 
 
 % Filter
-filter_type = "lowpass";
+filter_type = "lowpass_approx";
 
 r = 100;
 lcut = G.lmax/2;
@@ -299,27 +311,34 @@ switch btype
         num_tests=1;
         X=ones(G.N,T);
     case 'constant_spectral'
-        num_tests=1;
-        B=(1/sqrt(G.N))*ones(G.N,T);
-        X=G2.U*B;   %TODO: want components of different time frequency
+        B=(1/sqrt(G.N*T))*ones(G.N,T);
+        X=ifft(G2.U*B);   %want components of different time frequency and different spectral frequency
+        X2=(fft((G2.U*B)'))';
+        max(max(abs(X-X2)))
+        
+        X3=zeros(G.N,T);
+        D=dftmtx(T);
+        for i=1:G.N
+            for j=1:T
+                X3=X3+G2.U(:,i)*D(j,:);
+            end
+        end
+        max(max(abs(X3-X2)))
+        
      case 'randn_spectral'
-         B=(1/sqrt(G.N))*randn(G.N,T);
-         X=G2.U*B;
-%     case 'rand_spectral'
-%         num_tests=50;
-%         B=(1/sqrt(G.N))*rand(G.N,num_tests);
-%         X=G2.U*B;
-%     case 'randn'
-%         num_tests=50;
-%         X=(1/sqrt(G.N))*randn(G.N,num_tests);
-%     case 'rand'
-%         num_tests=50;
-%         X=(1/sqrt(G.N))*rand(G.N,num_tests);
+         B=(1/sqrt(G.N*T))*randn(G.N,T);
+         X=ifft(G2.U*B);
+    case 'rand_spectral'
+        B=(1/sqrt(G.N*T))*rand(G.N,T);
+        X=G2.U*B;
+    case 'randn'
+        X=(1/sqrt(G.N*T))*randn(G.N,T);
+    case 'rand'
+        X=(1/sqrt(G.N*T))*rand(G.N,T);
     otherwise
         error('unknown b type');
 end
 
-exptime_exact=0;
 exptime_cheb=0;
 exptime_lanc=0;
 exptime_interp=0;
@@ -328,7 +347,7 @@ exptime_weightedls=0;
 
 tic
 Xhat=gsp_tft(G,X);
-exptime_exact=exptime_exact+toc;
+exptime_exact=svd_time+toc;
 exptime_cheb=exptime_cheb+toc;
 exptime_lanc=exptime_lanc+toc;
 exptime_interp=exptime_interp+toc;
@@ -414,10 +433,12 @@ for t=1:T
     bhat=G2.U'*b;
     f=fset{1,t};
     
+    tic
     fAXhat_exact(:,t)=G2.U*(f(G2.e).*bhat);
+    exptime_exact=exptime_exact+toc;
     
     tic
-    fAXhat_cheb(:,t)=gsp_cheby_op(G,cheb_coef_mat(:,t),b); 
+    fAXhat_cheb(:,t)=gsp_cheby_op(G,cheb_coef_mat(:,t),b);
     exptime_cheb=exptime_cheb+toc;
 
     tic
@@ -452,7 +473,18 @@ fAX_weightedls=gsp_itft(G,fAXhat_weightedls);
 % time_saop
 % time_weightedls
 
-max(max(abs(fAX_cheb-fAX_exact)))
+% time_exact
+% time_cheb
+% time_lanc
+% time_interp
+% time_saop
+% time_weightedls
+
+time_table=table(exptime_exact,exptime_cheb,exptime_lanc,exptime_interp,exptime_saop,exptime_weightedls)
+error_table=table(max(max(abs(fAX_cheb-fAX_exact))),max(max(abs(fAX_lanc-fAX_exact))),...
+    max(max(abs(fAX_interp-fAX_exact))),max(max(abs(fAX_saop-fAX_exact))),max(max(abs(fAX_weightedls-fAX_exact))))
+
+max(max(abs(fAX_cheb-fAX_exact)))% change to fro
 max(max(abs(fAX_lanc-fAX_exact)))
 max(max(abs(fAX_interp-fAX_exact)))
 max(max(abs(fAX_saop-fAX_exact)))
