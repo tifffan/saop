@@ -3,10 +3,10 @@ clear all;
 randn('seed', 18); rand('seed', 18)
 
 % Graph
-N=500;
-T=100;
+N=5000;
+T=1000;
 
-graph='sensor';
+graph='grassi';
 switch graph
     case 'gnp'
         p=.2;
@@ -87,7 +87,7 @@ time_weightedls=time_weightedls+toc;
 
 
 % Filter
-filter_type = "lowpass-approx";
+filter_type = "lowpass";
 
 r = 100;
 lcut = G.lmax/2;
@@ -109,8 +109,57 @@ y=min(G.jtv.omega):.05:max(G.jtv.omega);
 x=0:.05:G.lmax;
 figure;surf(y,x,hlp(x',y));
 
+% Testing signal
+btype='constant_spectral'
+
+switch btype
+    case 'constant'
+        num_tests=1;
+        X=ones(G.N,T);
+    case 'constant_spectral'
+        B=(1/sqrt(G.N*T))*ones(G.N,T);    
+        X=(fft((G2.U*B)'))'; %want components of different time frequency and different spectral frequency        
+    case 'randn_spectral'
+         B=(1/sqrt(G.N*T))*randn(G.N,T);
+         X=(fft((G2.U*B)'))';
+    case 'rand_spectral'
+        B=(1/sqrt(G.N*T))*rand(G.N,T);
+        X=(fft((G2.U*B)'))';
+    case 'randn'
+        X=(1/sqrt(G.N*T))*randn(G.N,T);
+    case 'rand'
+        X=(1/sqrt(G.N*T))*rand(G.N,T);
+    otherwise
+        error('unknown b type');
+end
+
+exptime_cheb=0;
+exptime_lanc=0;
+exptime_interp=0;
+exptime_saop=0;
+exptime_weightedls=0;
+
+tic
+Xhat=gsp_tft(G,X);
+exptime_exact=svd_time+toc;
+exptime_cheb=exptime_cheb+toc;
+exptime_lanc=exptime_lanc+toc;
+exptime_interp=exptime_interp+toc;
+exptime_saop=exptime_saop+toc;
+exptime_weightedls=exptime_weightedls+toc;
+
+fAXhat_exact=zeros(G.N,T);
+fAXhat_cheb=zeros(G.N,T);
+fAXhat_lanc=zeros(G.N,T);
+fAXhat_interp=zeros(G.N,T);
+fAXhat_saop=zeros(G.N,T);
+fAXhat_weightedls=zeros(G.N,T);
+
+
+
 % Degrees of polynomial approximation
 orders = [1 5:5:30];
+%orders = 1:15; % for wave filter?
 
 % Initializing error list for each order: K -> error
 err_lowpass_cheb = zeros(numel(orders),1);
@@ -119,12 +168,26 @@ err_lowpass_interp = zeros(numel(orders),1);
 err_lowpass_saop = zeros(numel(orders),1);
 err_lowpass_weightedls = zeros(numel(orders),1);
 
+methods=["Chebyshev","Lanczos","Interpolation","SAOP","WeightedLS"];
 
+error_table=zeros(numel(orders),5);
+max_error_table=zeros(numel(orders),5);
 
 for m=1:numel(orders)
     K=orders(m);
+    
+    fset={};
 
-% Initialize error matrices within a given order: (lamda, omega) -> error
+cheb_coef_mat=zeros(K+1,T);
+interp_coef_mat=zeros(K+1,T);
+interp_s_set={};
+interp_mu_mat=zeros(2,T);
+saop_coef_mat=zeros(K+1,T);
+weightedls_coef_mat=zeros(K+1,T);
+weightedls_s_set={};
+weightedls_mu_mat=zeros(2,T);
+
+% Initialize error matrices within a given order: same size as signal
 error_mat_cheb=zeros(N,T);
 error_mat_lanc=zeros(N,T);
 error_mat_interp=zeros(N,T);
@@ -173,13 +236,14 @@ time_weightedls=time_weightedls+toc;
     
 for t=1:T
     f=@(lambda) hlp(lambda, omega(t));
+    fset{1,t}=f;
     
 % For each time frequency, we apply the following methods in 1-D
 % Chebyshev
 tic
 
 c=gsp_cheby_coeff(G,f,K,K+1); % expect: replicate of Grassi
-
+cheb_coef_mat(:,t)=c;
 time_cheb=time_cheb+toc;
 
 % Lanczos
@@ -199,211 +263,9 @@ tic
 [p_warped,s_warped,mu_warped]=polyfit(pts_warped_interp,f(pts_warped_interp),K);
 p_warped_fun=@(x) polyval(p_warped,x,s_warped,mu_warped); 
 p_warped_c=gsp_cheby_coeff(G,p_warped_fun,K,1000);
-
-time_interp=time_interp+toc;
-
-% Matrix/Spectrum adapted orthogonal polynomials
-tic
-
-c_spec_adapted_ortho=matrix_adapted_poly_coeff(G, f, absc, weights/sum(weights), Pi, K);
-
-time_saop=time_saop+toc;
-
-% Weighted LS fitting
-tic
-
-[p_weighted_lsc,s_weighted_ls,mu_weighted_ls]=weighted_polyfit(absc_weighted_ls,f(absc_weighted_ls),weights_weighted_ls,K);
-
-time_weightedls=time_weightedls+toc;
-
-% Least squares (assumes full knowledge of eigenvalues; just for comparison
-% to ideal; not scalable)
-
-tic
-y=f(G2.e);
-time_exact=time_exact+toc;
-
-% Compute polynomial approximation values at the actual eigenvalues and 
-% the corresponding superior and squared error
-
-tic
-y_cheb=gsp_cheby_eval(G2.e,c,[G.lmin,G.lmax]);
-time_cheb=time_cheb+toc;
-errors_cheb=y-y_cheb;
-error_mat_cheb(:,t)=errors_cheb;
-% sup_err_cheb=max(abs(errors_cheb));
-% se_cheb=sum(errors_cheb.^2);
-
-tic
-y_lanczos=G2.U'*gsp_filter(G,f,sum(G2.U')',lanc_param);
-time_lanc=time_lanc+toc;
-errors_lanczos=y-y_lanczos;
-error_mat_lanc(:,t)=errors_lanczos;
-% sup_err_lanczos=max(abs(errors_lanczos));
-% se_lanczos=sum(errors_lanczos.^2);
-
-tic
-y_cheb_warped=gsp_cheby_eval(G2.e,p_warped_c,[G.lmin,G.lmax]);
-time_interp=time_interp+toc;
-errors_cheb_warped=y-y_cheb_warped;
-error_mat_interp(:,t)=errors_cheb_warped;
-% sup_err_cheb_warped=max(abs(errors_cheb_warped));
-% se_cheb_warped=sum(errors_cheb_warped.^2);
-
-tic
-y_spec_adapted_ortho=three_term_eval(G,G2.e,ab(1:K+2,:),c_spec_adapted_ortho(1:K+1));
-time_saop=time_saop+toc;
-errors_spec_adapted_ortho=y-y_spec_adapted_ortho;
-error_mat_saop(:,t)=errors_spec_adapted_ortho;
-% sup_err_spec_adapted_ortho=max(abs(errors_spec_adapted_ortho));
-% se_spec_adapted_ortho=sum(errors_spec_adapted_ortho.^2);
-
-tic
-y_weighted_ls=polyval(p_weighted_lsc,G2.e,s_weighted_ls,mu_weighted_ls);
-time_weightedls=time_weightedls+toc;
-errors_weighted_ls=y-y_weighted_ls;
-error_mat_weightedls(:,t)=errors_weighted_ls;
-% sup_err_weighted_ls=max(abs(errors_weighted_ls));
-% se_weighted_ls=sum(errors_weighted_ls.^2);
-
-end
-
-% Superior error and standard error for each method at a given order
-
-% sup_err_cheb=max(max(abs(error_mat_cheb)))
-% se_cheb=sum(sum(error_mat_cheb.^2))
-% sup_err_lanc=max(max(abs(error_mat_lanc)))
-% se_lanc=sum(sum(error_mat_lanc.^2))
-% sup_err_interp=max(max(abs(error_mat_interp)))
-% se_interp=sum(sum(error_mat_interp.^2))
-% sup_err_saop=max(max(abs(error_mat_saop)))
-% se_spec_adapted_ortho=sum(sum(error_mat_saop.^2))
-% sup_err_weighted_ls=max(max(abs(error_mat_weightedls)))
-% se_weighted_ls=sum(sum(error_mat_weightedls.^2))
-
-err_lowpass_cheb(m) = norm(error_mat_cheb,'fro')/norm(Hlp,'fro');
-err_lowpass_lanc(m) = norm(error_mat_lanc,'fro')/norm(Hlp,'fro');
-err_lowpass_interp(m) = norm(error_mat_interp,'fro')/norm(Hlp,'fro');
-err_lowpass_saop(m) = norm(error_mat_saop,'fro')/norm(Hlp,'fro');
-err_lowpass_weightedls(m) = norm(error_mat_weightedls,'fro')/norm(Hlp,'fro');
-end
-
-figure;
-plot=semilogy(orders,[err_lowpass_cheb,err_lowpass_lanc,err_lowpass_interp,...
-    err_lowpass_saop, err_lowpass_weightedls],'-o','LineWidth',1,'MarkerSize',10);
-set(gca,'FontSize',20);
-set(plot, {'MarkerFaceColor'}, get(plot,'Color')); 
-hold on;
-legend(plot,'Chebyshev','Lanczos','Interpolation','SAOP','Weighted LS','Location','Northwest');  
-%ylabel('$$\sum_{\ell=1}^N \left(f(\lambda_{\ell})-p_K(\lambda_{\ell})\right)^2/\sum_{\ell=1}^N f(\lambda_{\ell})^2$$','Interpreter','latex');
-grid on;
-xlabel('Polynomial Order');
-ylabel('Normalized Error');
-title(strcat('Graph=',graph,', Filter=',filter_type));
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Numerical Experimentation
-
-btype='constant_spectral'
-
-switch btype
-    case 'constant'
-        num_tests=1;
-        X=ones(G.N,T);
-    case 'constant_spectral'
-        B=(1/sqrt(G.N*T))*ones(G.N,T);    
-        X=(fft((G2.U*B)'))'; %want components of different time frequency and different spectral frequency
-        
-%         X3=zeros(G.N,T);
-%         D=dftmtx(T);
-%         for i=1:G.N
-%             for j=1:T
-%                 X3=X3+G2.U(:,i)*D(j,:);
-%             end
-%         end
-%         max(max(abs(X-X2)))
-        
-     case 'randn_spectral'
-         B=(1/sqrt(G.N*T))*randn(G.N,T);
-         X=ifft(G2.U*B);
-    case 'rand_spectral'
-        B=(1/sqrt(G.N*T))*rand(G.N,T);
-        X=G2.U*B;
-    case 'randn'
-        X=(1/sqrt(G.N*T))*randn(G.N,T);
-    case 'rand'
-        X=(1/sqrt(G.N*T))*rand(G.N,T);
-    otherwise
-        error('unknown b type');
-end
-
-exptime_cheb=0;
-exptime_lanc=0;
-exptime_interp=0;
-exptime_saop=0;
-exptime_weightedls=0;
-
-tic
-Xhat=gsp_tft(G,X);
-exptime_exact=svd_time+toc;
-exptime_cheb=exptime_cheb+toc;
-exptime_lanc=exptime_lanc+toc;
-exptime_interp=exptime_interp+toc;
-exptime_saop=exptime_saop+toc;
-exptime_weightedls=exptime_weightedls+toc;
-
-fAXhat_exact=zeros(G.N,T);
-fAXhat_cheb=zeros(G.N,T);
-fAXhat_lanc=zeros(G.N,T);
-fAXhat_interp=zeros(G.N,T);
-fAXhat_saop=zeros(G.N,T);
-fAXhat_weightedls=zeros(G.N,T);
-
-%fset=function_handle.empty(T);
-fset={};
-
-cheb_coef_mat=zeros(K+1,T);
-interp_coef_mat=zeros(K+1,T);
-interp_s_set={};
-interp_mu_mat=zeros(2,T);
-saop_coef_mat=zeros(K+1,T);
-weightedls_coef_mat=zeros(K+1,T);
-weightedls_s_set={};
-weightedls_mu_mat=zeros(2,T);
-
-for t=1:T
-    f=@(lambda) hlp(lambda, omega(t));
-    fset{1,t}=f;
-   
-% For each time frequency, we apply the following methods in 1-D
-% Chebyshev
-tic
-
-c=gsp_cheby_coeff(G,f,K,K+1); % expect: replicate of Grassi
-cheb_coef_mat(:,t)=c;
-
-time_cheb=time_cheb+toc;
-
-% Lanczos
-tic
-
-lanc_param.method='lanczos';
-lanc_param.order=K;
-%[V,H]=lanczos(G.L,K,x);
-% e=eig(H);
-
-time_lanc=time_lanc+toc;
-
-% Chebyshev interpolation on warped points
-tic
-
-[p_warped,s_warped,mu_warped]=polyfit(pts_warped_interp,f(pts_warped_interp),K);
-p_warped_fun=@(x) polyval(p_warped,x,s_warped,mu_warped); 
-p_warped_c=gsp_cheby_coeff(G,p_warped_fun,K,1000);
 interp_coef_mat(:,t)=p_warped;
 interp_s_set{1,t}=s_warped;
 interp_mu_mat(:,t)=mu_warped;
-
 time_interp=time_interp+toc;
 
 % Matrix/Spectrum adapted orthogonal polynomials
@@ -411,7 +273,6 @@ tic
 
 c_spec_adapted_ortho=matrix_adapted_poly_coeff(G, f, absc, weights/sum(weights), Pi, K);
 saop_coef_mat(:,t)=c_spec_adapted_ortho;
-
 time_saop=time_saop+toc;
 
 % Weighted LS fitting
@@ -421,9 +282,9 @@ tic
 weightedls_coef_mat(:,t)=p_weighted_lsc;
 weightedls_s_set{1,t}=s_weighted_ls;
 weightedls_mu_mat(:,t)=mu_weighted_ls;
-
 time_weightedls=time_weightedls+toc;
-end 
+end
+
 
 for t=1:T
     
@@ -464,20 +325,37 @@ fAX_interp=gsp_itft(G,fAXhat_interp);
 fAX_saop=gsp_itft(G,fAXhat_saop);
 fAX_weightedls=gsp_itft(G,fAXhat_weightedls);
 
-% time_exact
-% time_cheb
-% time_lanc
-% time_interp
-% time_saop
-% time_weightedls
+error_table(m,:)=[norm((fAX_cheb-fAX_exact),'fro'),norm((fAX_lanc-fAX_exact),'fro'),...
+norm((fAX_interp-fAX_exact),'fro'),norm((fAX_saop-fAX_exact),'fro'),norm((fAX_weightedls-fAX_exact),'fro')];
 
-% time_exact
-% time_cheb
-% time_lanc
-% time_interp
-% time_saop
-% time_weightedls
+max_error_table(m,:)=[max(max(abs(fAX_cheb-fAX_exact))),max(max(abs(fAX_lanc-fAX_exact))),...
+    max(max(abs(fAX_interp-fAX_exact))),max(max(abs(fAX_saop-fAX_exact))),max(max(abs(fAX_weightedls-fAX_exact)))];
 
-runtime=table(exptime_exact,exptime_cheb,exptime_lanc,exptime_interp,exptime_saop,exptime_weightedls)
-error_fro_norm=table(norm((fAX_cheb-fAX_exact),'fro'),norm((fAX_lanc-fAX_exact),'fro'),...
-    norm((fAX_interp-fAX_exact),'fro'),norm((fAX_saop-fAX_exact),'fro'),norm((fAX_weightedls-fAX_exact),'fro'))
+end
+
+figure;
+plot=semilogy(orders,[error_table(:,1),error_table(:,2),error_table(:,3),...
+    error_table(:,4), error_table(:,5)],'-o','LineWidth',1,'MarkerSize',10);
+set(gca,'FontSize',20);
+set(plot, {'MarkerFaceColor'}, get(plot,'Color')); 
+hold on;
+legend(plot,'Chebyshev','Lanczos','Interpolation','SAOP','Weighted LS','Location','Northwest');  
+%ylabel('$$\sum_{\ell=1}^N \left(f(\lambda_{\ell})-p_K(\lambda_{\ell})\right)^2/\sum_{\ell=1}^N f(\lambda_{\ell})^2$$','Interpreter','latex');
+grid on;
+xlabel('Polynomial Order');
+ylabel('Frobenius Norm of Filtered Signal');
+title(strcat('Graph=',graph,', Filter=',filter_type));
+
+
+figure;
+plot=semilogy(orders,[max_error_table(:,1),max_error_table(:,2),max_error_table(:,3),...
+    max_error_table(:,4), max_error_table(:,5)],'-o','LineWidth',1,'MarkerSize',10);
+set(gca,'FontSize',20);
+set(plot, {'MarkerFaceColor'}, get(plot,'Color')); 
+hold on;
+legend(plot,'Chebyshev','Lanczos','Interpolation','SAOP','Weighted LS','Location','Northwest');  
+%ylabel('$$\sum_{\ell=1}^N \left(f(\lambda_{\ell})-p_K(\lambda_{\ell})\right)^2/\sum_{\ell=1}^N f(\lambda_{\ell})^2$$','Interpreter','latex');
+grid on;
+xlabel('Polynomial Order');
+ylabel('Frobenius Norm of Filtered Signal');
+title(strcat('Graph=',graph,', Filter=',filter_type));
