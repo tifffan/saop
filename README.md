@@ -1,2 +1,2 @@
-# spectral-warping
-Summer 2018
+# saop
+Spectrum-adapted polynomial approximation for matrix functions
