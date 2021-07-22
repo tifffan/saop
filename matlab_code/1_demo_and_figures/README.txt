@@ -1,0 +1,3 @@
+This code implements the algorithms presented in the paper "Spectrum-Adapted Polynomial Approximation for Matrix Functions with Applications in Graph Signal Processing,"  by Tiffany Fan, David I Shuman, Shashanka Ubaru, and Yousef Saad, July 2020.
+
+It requires the graph signal processing toolbox (GSPBox), which is available at https://epfl-lts2.github.io/gspbox-html/. Some functions in the toolbox were modified for the purpose of this work (e.g., allowing for functions of matrices with negative eigenvalues). 
